@@ -80,7 +80,37 @@ public class BookController {
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
+        }
+    }
+
+    // GET archived books
+    @GetMapping("/archived")
+    public ResponseEntity<List<Book>> getArchivedBooks() {
+
+        return ResponseEntity.ok(
+                bookService.getArchivedBooks()
+        );
+    }
+
+    // RESTORE archived book
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restoreBook(@PathVariable Long id) {
+
+        try {
+            return ResponseEntity.ok(
+                    bookService.restoreBook(id)
+            );
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
 }

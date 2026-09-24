@@ -332,6 +332,34 @@ const handleDeleteBook = async (id) => {
   return data;
 };
 
+// Get archived books
+const handleGetArchivedBooks = async () => {
+  const res = await fetch(`${API_BASE}/books/archived`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to load archived books');
+  }
+
+  return data;
+};
+
+// Restore archived book
+const handleRestoreBook = async (id) => {
+  const res = await fetch(`${API_BASE}/books/${id}/restore`, {
+    method: 'PUT',
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to restore book');
+  }
+
+  await fetchData();
+  return data;
+};
+
 
 
 // Adjust Book Stock

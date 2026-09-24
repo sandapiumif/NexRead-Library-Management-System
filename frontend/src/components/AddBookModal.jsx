@@ -1,6 +1,50 @@
 import React, { useState } from 'react';
 import { AlertTriangleIcon, BookIcon, CheckCircleIcon } from './Icons';
 
+const BOOK_CATEGORIES = [
+  'Fiction',
+  'Science',
+  'Technology',
+  'Mathematics',
+  'Business',
+  'History',
+  'Literature',
+  'Psychology',
+  'Education',
+  'Medicine',
+  'Law',
+  'Biography',
+  'Self-Help',
+  "Children's",
+  'Reference',
+  'Arts',
+  'Sports',
+  'Religion',
+  'Travel',
+  'Languages',
+  'Engineering',
+  'Economics & Finance',
+  'Geography',
+  'Philosophy',
+  'Politics',
+  'Music',
+  'Poetry',
+  'Cooking & Food',
+  'Nature & Environment',
+  'Agriculture',
+  'Architecture',
+  'Communication & Media',
+  'Computer Science',
+  'Software Engineering',
+  'Database Systems',
+  'Web Development',
+  'Artificial Intelligence',
+  'Mystery & Thriller',
+  'Fantasy & Science Fiction',
+  'Modern Classics',
+  'Novel'
+];
+
 export default function AddBookModal({ isOpen, onClose, onAddBook }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -154,12 +198,11 @@ export default function AddBookModal({ isOpen, onClose, onAddBook }) {
                   onChange={handleChange}
                   style={{ width: '100%', height: '42px' }}
                 >
-                  <option value="Software Engineering">Software Engineering</option>
-                  <option value="Computer Science">Computer Science</option>
-                  <option value="Database Systems">Database Systems</option>
-                  <option value="Web Development">Web Development</option>
-                  <option value="Artificial Intelligence">Artificial Intelligence</option>
-                  <option value="Modern Classics">Modern Classics</option>
+                  {BOOK_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

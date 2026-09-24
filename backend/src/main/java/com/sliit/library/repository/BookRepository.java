@@ -12,13 +12,37 @@ import java.util.Optional;
 // Data access operations for book collection
 @Repository
 public interface BookRepository extends JpaRepository<Book, Long> {
+
     Optional<Book> findByBookCode(String bookCode);
+
     Optional<Book> findByIsbn(String isbn);
+
     List<Book> findByCategoryIgnoreCase(String category);
 
-    // search books by title, author, or isbn
-    @Query("SELECT b FROM Book b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) " +
-           "OR LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%')) " +
-           "OR LOWER(b.isbn) LIKE LOWER(CONCAT('%', :query, '%'))")
-    List<Book> searchBooks(@Param("query") String query);
+    // Get only active / non-archived books
+    @Query("""
+        SELECT b FROM Book b
+        WHERE UPPER(b.status) <> 'ARCHIVED'
+        """)
+    List<Book> findActiveCatalogBooks();
+
+    // Search only active / non-archived books
+    @Query("""
+        SELECT b FROM Book b
+        WHERE UPPER(b.status) <> 'ARCHIVED'
+          AND (
+              LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(b.author) LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(b.isbn) LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(b.bookCode) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+        """)
+    List<Book> searchBooks(@Param("search") String search);
+
+    // Get archived books
+    @Query("""
+        SELECT b FROM Book b
+        WHERE UPPER(b.status) = 'ARCHIVED'
+        """)
+    List<Book> findArchivedBooks();
 }

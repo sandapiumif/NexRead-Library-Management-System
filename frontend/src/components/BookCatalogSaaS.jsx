@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import BookEngagementPanel from './BookEngagementPanel';
+import BookRecommendations from './BookRecommendations';
 import { CodeIcon, BookIcon, DatabaseIcon, GlobeIcon, CpuIcon } from './Icons';
 
 export default function BookCatalogSaaS({
@@ -11,13 +13,47 @@ export default function BookCatalogSaaS({
   onAdjustStock,
   onUpdateBook,
   onDeleteBook,
+  onRestoreBook,
 }) {
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
-  const [featuredBookId, setFeaturedBookId] = useState(2); // BK-2002 as default highlighted
+  const [viewMode, setViewMode] = useState('grid');
+  const [featuredBookId, setFeaturedBookId] = useState(2);
   const [actionMessage, setActionMessage] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
+  const [wishlistRefreshKey, setWishlistRefreshKey] = useState(0);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedBooks, setArchivedBooks] = useState([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+
+  // Load archived books
+  const loadArchivedBooks = async () => {
+    try {
+      setArchivedLoading(true);
+
+      const response = await fetch(
+        'http://localhost:8080/api/books/archived'
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || 'Failed to load archived books'
+        );
+      }
+
+      setArchivedBooks(data);
+
+    } catch (error) {
+      setActionMessage(
+        error.message || 'Failed to load archived books'
+      );
+    } finally {
+      setArchivedLoading(false);
+    }
+  };
 
   const categories = [
     'ALL',
@@ -69,7 +105,8 @@ export default function BookCatalogSaaS({
       book.isbn.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === 'ALL' || book.category === selectedCategory;
+      selectedCategory === 'ALL' ||
+      book.category === selectedCategory;
 
     return matchesSearch && matchesCategory;
   });
@@ -78,14 +115,19 @@ export default function BookCatalogSaaS({
     switch (category) {
       case 'Software Engineering':
         return <CodeIcon size={14} />;
+
       case 'Computer Science':
         return <BookIcon size={14} />;
+
       case 'Database Systems':
         return <DatabaseIcon size={14} />;
+
       case 'Web Development':
         return <GlobeIcon size={14} />;
+
       case 'Artificial Intelligence':
         return <CpuIcon size={14} />;
+
       default:
         return <BookIcon size={14} />;
     }
@@ -95,14 +137,19 @@ export default function BookCatalogSaaS({
     switch (category) {
       case 'Software Engineering':
         return 'badge-se';
+
       case 'Computer Science':
         return 'badge-cs';
+
       case 'Database Systems':
         return 'badge-db';
+
       case 'Web Development':
         return 'badge-web';
+
       case 'Artificial Intelligence':
         return 'badge-ai';
+
       default:
         return 'badge-se';
     }
@@ -110,98 +157,206 @@ export default function BookCatalogSaaS({
 
   const handleMemberAction = async (book) => {
     if (!activeMember) {
-      setActionMessage('Please select or register a member account to borrow or reserve.');
+      setActionMessage(
+        'Please select or register a member account to borrow or reserve.'
+      );
+
       setTimeout(() => setActionMessage(''), 4000);
       return;
     }
 
     try {
       if (book.availableCopies > 0) {
-        await onBorrowBook(activeMember.id, book.id);
-        setActionMessage(`Successfully borrowed "${book.title}"! Due in 14 days.`);
+
+        await onBorrowBook(
+          activeMember.id,
+          book.id
+        );
+
+        setActionMessage(
+          `Successfully borrowed "${book.title}"! Due in 14 days.`
+        );
+
       } else {
-        const res = await onReserveBook(activeMember.id, book.id);
-        setActionMessage(`Book reserved! Queue Position: #${res.waitingPosition}.`);
+
+        const res = await onReserveBook(
+          activeMember.id,
+          book.id
+        );
+
+        setActionMessage(
+          `Book reserved! Queue Position: #${res.waitingPosition}.`
+        );
       }
+
       setTimeout(() => setActionMessage(''), 5000);
+
     } catch (err) {
-      setActionMessage(`Notice: ${err.message || 'Action failed'}`);
+
+      setActionMessage(
+        `Notice: ${err.message || 'Action failed'}`
+      );
+
       setTimeout(() => setActionMessage(''), 5000);
     }
   };
-// Admin: Edit Book
-const handleEditBook = async (book) => {
-  const title = window.prompt("Book Title:", book.title);
-  if (title === null) return;
 
-  const author = window.prompt("Author:", book.author || "");
-  if (author === null) return;
+  // Admin: Edit Book
+  const handleEditBook = async (book) => {
 
-  const publisher = window.prompt("Publisher:", book.publisher || "");
-  if (publisher === null) return;
+    const title = window.prompt(
+      "Book Title:",
+      book.title
+    );
 
-  const category = window.prompt("Category:", book.category || "");
-  if (category === null) return;
+    if (title === null) return;
 
-  const totalCopiesInput = window.prompt(
-    "Total Copies:",
-    book.totalCopies
-  );
-  if (totalCopiesInput === null) return;
+    const author = window.prompt(
+      "Author:",
+      book.author || ""
+    );
 
-  const totalCopies = Number(totalCopiesInput);
+    if (author === null) return;
 
-  if (!Number.isInteger(totalCopies) || totalCopies <= 0) {
-    alert("Total copies must be a positive whole number.");
-    return;
-  }
+    const publisher = window.prompt(
+      "Publisher:",
+      book.publisher || ""
+    );
 
-  const coverImage = window.prompt(
-  "Book Cover Image URL:",
-  book.coverImage || ""
-  );
-  if (coverImage === null) return;
+    if (publisher === null) return;
 
-  try {
-    await onUpdateBook(book.id, {
-      title: title.trim(),
-      author: author.trim(),
-      publisher: publisher.trim(),
-      category: category.trim(),
-      isbn: book.isbn,
-      totalCopies: totalCopies,
-      description: book.description || "",
-      coverImage: coverImage.trim(),
-    });
+    const category = window.prompt(
+      "Category:",
+      book.category || ""
+    );
 
-    alert("Book updated successfully!");
-  } catch (error) {
-    alert(error.message || "Failed to update book.");
-  }
-};
+    if (category === null) return;
+
+    const totalCopiesInput = window.prompt(
+      "Total Copies:",
+      book.totalCopies
+    );
+
+    if (totalCopiesInput === null) return;
+
+    const totalCopies = Number(totalCopiesInput);
+
+    if (
+      !Number.isInteger(totalCopies) ||
+      totalCopies <= 0
+    ) {
+      alert(
+        "Total copies must be a positive whole number."
+      );
+      return;
+    }
+
+    const coverImage = window.prompt(
+      "Book Cover Image URL:",
+      book.coverImage || ""
+    );
+
+    if (coverImage === null) return;
+
+    try {
+
+      await onUpdateBook(book.id, {
+        title: title.trim(),
+        author: author.trim(),
+        publisher: publisher.trim(),
+        category: category.trim(),
+        isbn: book.isbn,
+        totalCopies: totalCopies,
+        description: book.description || "",
+        coverImage: coverImage.trim(),
+      });
+
+      alert(
+        "Book updated successfully!"
+      );
+
+    } catch (error) {
+
+      alert(
+        error.message ||
+        "Failed to update book."
+      );
+    }
+  };
 
   return (
     <div>
-      {/* SaaS Page Header matching reference */}
+
+      {/* SaaS Page Header */}
       <div className="saas-page-header">
+
         <div className="page-title-group">
+
           <h1>
-            Book Catalog Collection <span className="page-title-count">({books.length})</span>
+            Book Catalog Collection{' '}
+            <span className="page-title-count">
+              ({books.length})
+            </span>
           </h1>
+
           <p className="page-subtitle">
-            Browse and manage enterprise learning literature, track stock availability, and issue loans.
+            Browse and manage enterprise learning literature,
+            track stock availability, and issue loans.
           </p>
+
         </div>
 
         {userRole === 'ADMIN' && (
-          <button className="btn-primary-action" onClick={onOpenAddModal}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+          <button
+            className="btn-primary-action"
+            onClick={onOpenAddModal}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line
+                x1="12"
+                y1="5"
+                x2="12"
+                y2="19"
+              ></line>
+
+              <line
+                x1="5"
+                y1="12"
+                x2="19"
+                y2="12"
+              ></line>
             </svg>
-            <span> Add New Book</span>
+
+            <span>Add New Book</span>
           </button>
         )}
+
+        {userRole !== 'MEMBER' && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              const next = !showArchived;
+
+              setShowArchived(next);
+
+              if (next) {
+                loadArchivedBooks();
+              }
+            }}
+          >
+            {showArchived
+              ? 'Back to Active Books'
+              : 'Archived Books'}
+          </button>
+        )}
+
       </div>
 
       {actionMessage && (
@@ -221,448 +376,1131 @@ const handleEditBook = async (book) => {
         </div>
       )}
 
-      {/* Filter & Search Bar matching screenshot */}
+      {/* Filter & Search Bar */}
       <div className="saas-filter-bar">
+
         <div className="search-input-wrapper">
-          <svg className="search-icon-inside" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+
+          <svg
+            className="search-icon-inside"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle
+              cx="11"
+              cy="11"
+              r="8"
+            ></circle>
+
+            <line
+              x1="21"
+              y1="21"
+              x2="16.65"
+              y2="16.65"
+            ></line>
           </svg>
+
           <input
             type="text"
             placeholder="Search catalog by title, author, or ISBN..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) =>
+              setSearchTerm(e.target.value)
+            }
           />
+
         </div>
 
         <div className="filter-actions-group">
+
           <select
             className="select-dropdown"
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) =>
+              setSelectedCategory(e.target.value)
+            }
           >
+
             {categories.map((c) => (
-              <option key={c} value={c}>
-                {c === 'ALL' ? 'All Categories' : c}
+              <option
+                key={c}
+                value={c}
+              >
+                {c === 'ALL'
+                  ? 'All Categories'
+                  : c}
               </option>
             ))}
+
           </select>
 
           <div className="view-toggle-group">
+
             <button
-              className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')}
+              className={`view-toggle-btn ${
+                viewMode === 'grid'
+                  ? 'active'
+                  : ''
+              }`}
+              onClick={() =>
+                setViewMode('grid')
+              }
               title="Grid View"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect
+                  x="3"
+                  y="3"
+                  width="7"
+                  height="7"
+                ></rect>
+
+                <rect
+                  x="14"
+                  y="3"
+                  width="7"
+                  height="7"
+                ></rect>
+
+                <rect
+                  x="14"
+                  y="14"
+                  width="7"
+                  height="7"
+                ></rect>
+
+                <rect
+                  x="3"
+                  y="14"
+                  width="7"
+                  height="7"
+                ></rect>
               </svg>
             </button>
+
             <button
-              className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
+              className={`view-toggle-btn ${
+                viewMode === 'list'
+                  ? 'active'
+                  : ''
+              }`}
+              onClick={() =>
+                setViewMode('list')
+              }
               title="List View"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line
+                  x1="8"
+                  y1="6"
+                  x2="21"
+                  y2="6"
+                ></line>
+
+                <line
+                  x1="8"
+                  y1="12"
+                  x2="21"
+                  y2="12"
+                ></line>
+
+                <line
+                  x1="8"
+                  y1="18"
+                  x2="21"
+                  y2="18"
+                ></line>
+
+                <line
+                  x1="3"
+                  y1="6"
+                  x2="3.01"
+                  y2="6"
+                ></line>
+
+                <line
+                  x1="3"
+                  y1="12"
+                  x2="3.01"
+                  y2="12"
+                ></line>
+
+                <line
+                  x1="3"
+                  y1="18"
+                  x2="3.01"
+                  y2="18"
+                ></line>
               </svg>
             </button>
+
           </div>
+
         </div>
       </div>
 
-      {/* Grid Layout matching screenshot */}
-      {viewMode === 'grid' ? (
-        <div className="saas-card-grid">
-          {filteredBooks.map((book) => {
-            const isFeatured = book.id === featuredBookId;
+      {/* Archived Books View */}
+      {showArchived ? (
 
-            return (
-              <div
-                key={book.id}
-                className={`saas-card ${isFeatured ? 'featured-card' : ''}`}
-                onClick={() => setSelectedBook(book)}
-              >
-                {/* Top Row: Category pill + action button */}
-                <div className="card-top-row">
-                  <div className={`card-type-badge ${!isFeatured ? getCategoryClass(book.category) : ''}`}>
-                    <span>{getCategoryIcon(book.category)}</span>
-                    <span>{book.category}</span>
-                  </div>
+        <div>
 
-                  {userRole === 'MEMBER' ? (
-                    <button
-                      className="btn-card-action"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMemberAction(book);
-                      }}
-                    >
-                      {book.availableCopies > 0 ? 'Borrow' : 'Reserve'}
-                    </button>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        className="btn-card-action"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditBook(book);
-                        }}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        className="btn-card-action"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteBook(book.id);
-                        }}
-                      >
-                        Archive
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Book Cover and Information Layout */}
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', margin: '10px 0' }}>
-                  <div style={{
-                    width: '68px',
-                    height: '96px',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    boxShadow: '0 6px 14px rgba(0,0,0,0.12)',
-                    backgroundColor: 'var(--bg-input)',
-                    border: '1px solid var(--border-color)',
-                  }}>
-                    <img
-                      src={book.coverImage}
-                      alt={book.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
-                      }}
-                    />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 className="card-title" style={{ fontSize: '0.98rem', lineHeight: 1.3 }}>{book.title}</h3>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 500 }}>
-                      by {book.author}
-                    </div>
-                    <p className="card-desc" style={{ marginTop: '6px' }}>
-                      {book.description || 'Comprehensive resource on modern engineering, algorithms and systems design.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Footer matching reference layout */}
-                <div className="card-footer">
-                  <div className="card-meta-item">
-                    {book.availableCopies > 0 ? (
-                      <>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="2" y1="12" x2="22" y2="12"></line>
-                        </svg>
-                        <span>{book.availableCopies} Available</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        <span>Out of Stock</span>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="card-meta-item">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <span>{book.totalCopies} Total Copies</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* Table List View */
-        <div className="saas-table-container">
-          <table className="saas-table">
-            <thead>
-              <tr>
-                <th>Code / ISBN</th>
-                <th>Title & Author</th>
-                <th>Category</th>
-                <th>Publisher</th>
-                <th>Availability</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBooks.map((book) => (
-                <tr key={book.id}>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{book.bookCode}</div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{book.isbn}</div>
-                  </td>
-                  <td
-                    onClick={() => setSelectedBook(book)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                      {book.title}
-                    </div>
-
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {book.author}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-pill ${getCategoryClass(book.category)}`}>
-                      {book.category}
-                    </span>
-                  </td>
-                  <td>{book.publisher}</td>
-                  <td>
-                    <span
-                      className={`status-pill ${book.availableCopies > 0 ? 'status-available' : 'status-overdue'}`}
-                    >
-                      {book.availableCopies > 0 ? `${book.availableCopies} of ${book.totalCopies} In Stock` : 'Out of Stock'}
-                    </span>
-                  </td>
-                  <td>
-                    {userRole === 'MEMBER' ? (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleMemberAction(book)}
-                      >
-                        {book.availableCopies > 0 ? 'Borrow' : 'Reserve'}
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleEditBook(book)}
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => onDeleteBook(book.id)}
-                        >
-                          Archive
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-        {/* Book Details Modal */}
-        {selectedBook && (
           <div
             style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0, 0, 0, 0.55)',
               display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: '20px',
+              marginBottom: '20px',
             }}
-            onClick={() => setSelectedBook(null)}
           >
-            <div
-              className="card"
-              style={{
-                width: 'min(700px, 95vw)',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                position: 'relative',
-                padding: '28px',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close Button */}
-              <button
-                onClick={() => setSelectedBook(null)}
+
+            <h2>
+              Archived Books
+              {' '}
+              <span className="page-title-count">
+                ({archivedBooks.length})
+              </span>
+            </h2>
+
+            {archivedLoading && (
+              <span>
+                Loading archived books...
+              </span>
+            )}
+
+          </div>
+
+          {!archivedLoading &&
+            archivedBooks.length === 0 && (
+              <div
+                className="card"
                 style={{
-                  position: 'absolute',
-                  top: '15px',
-                  right: '15px',
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '24px',
-                  cursor: 'pointer',
+                  padding: '30px',
+                  textAlign: 'center',
                 }}
               >
-                ×
-              </button>
+                No archived books found.
+              </div>
+            )}
 
-              {/* Book Details */}
+          {!archivedLoading &&
+            archivedBooks.length > 0 && (
+
+              <div className="saas-card-grid">
+
+                {archivedBooks.map((book) => (
+
+                  <div
+                    key={book.id}
+                    className="saas-card"
+                  >
+
+                    <div className="card-top-row">
+
+                      <div
+                        className={`card-type-badge ${getCategoryClass(
+                          book.category
+                        )}`}
+                      >
+                        <span>
+                          {getCategoryIcon(
+                            book.category
+                          )}
+                        </span>
+
+                        <span>
+                          {book.category}
+                        </span>
+                      </div>
+
+                      {userRole === 'ADMIN' && (
+                        <button
+                          className="btn-card-action"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Are you sure you want to restore "${book.title}"?`
+                              )
+                            ) {
+                              if (onRestoreBook) {
+                                onRestoreBook(book.id);
+
+                                setTimeout(
+                                  () => {
+                                    loadArchivedBooks();
+                                  },
+                                  500
+                                );
+                              }
+                            }
+                          }}
+                        >
+                          Restore
+                        </button>
+                      )}
+
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '14px',
+                        alignItems: 'flex-start',
+                        margin: '10px 0',
+                      }}
+                    >
+
+                      <div
+                        style={{
+                          width: '68px',
+                          height: '96px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          boxShadow:
+                            '0 6px 14px rgba(0,0,0,0.12)',
+                          backgroundColor:
+                            'var(--bg-input)',
+                          border:
+                            '1px solid var(--border-color)',
+                        }}
+                      >
+
+                        <img
+                          src={book.coverImage}
+                          alt={book.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          onError={(e) => {
+                            e.target.src =
+                              'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
+                          }}
+                        />
+
+                      </div>
+
+                      <div
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
+
+                        <h3
+                          className="card-title"
+                          style={{
+                            fontSize: '0.98rem',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {book.title}
+                        </h3>
+
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '2px',
+                            fontWeight: 500,
+                          }}
+                        >
+                          by {book.author}
+                        </div>
+
+                        <p
+                          className="card-desc"
+                          style={{
+                            marginTop: '6px',
+                          }}
+                        >
+                          {book.description ||
+                            'No description available.'}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                    <div className="card-footer">
+
+                      <div className="card-meta-item">
+                        Archived
+                      </div>
+
+                      <div className="card-meta-item">
+                        {book.totalCopies} Total Copies
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                ))}
+
+              </div>
+            )}
+
+        </div>
+
+      ) : (
+
+        <>
+          {/* Active Book Catalog */}
+
+          {viewMode === 'grid' ? (
+
+            <div className="saas-card-grid">
+
+              {filteredBooks.map((book) => {
+
+                const isFeatured =
+                  book.id === featuredBookId;
+
+                return (
+                  <div
+                    key={book.id}
+                    className={`saas-card ${
+                      isFeatured
+                        ? 'featured-card'
+                        : ''
+                    }`}
+                    onClick={() =>
+                      setSelectedBook(book)
+                    }
+                  >
+
+                    {/* Top Row */}
+                    <div className="card-top-row">
+
+                      <div
+                        className={`card-type-badge ${
+                          !isFeatured
+                            ? getCategoryClass(
+                                book.category
+                              )
+                            : ''
+                        }`}
+                      >
+
+                        <span>
+                          {getCategoryIcon(
+                            book.category
+                          )}
+                        </span>
+
+                        <span>
+                          {book.category}
+                        </span>
+
+                      </div>
+
+                      {userRole === 'MEMBER' ? (
+
+                        <button
+                          className="btn-card-action"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMemberAction(book);
+                          }}
+                        >
+                          {book.availableCopies > 0
+                            ? 'Borrow'
+                            : 'Reserve'}
+                        </button>
+
+                      ) : (
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '6px',
+                          }}
+                        >
+
+                          <button
+                            className="btn-card-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditBook(book);
+                            }}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="btn-card-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteBook(book.id);
+                            }}
+                          >
+                            Archive
+                          </button>
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+                    {/* Book Cover and Information */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '14px',
+                        alignItems: 'flex-start',
+                        margin: '10px 0',
+                      }}
+                    >
+
+                      <div
+                        style={{
+                          width: '68px',
+                          height: '96px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          boxShadow:
+                            '0 6px 14px rgba(0,0,0,0.12)',
+                          backgroundColor:
+                            'var(--bg-input)',
+                          border:
+                            '1px solid var(--border-color)',
+                        }}
+                      >
+
+                        <img
+                          src={book.coverImage}
+                          alt={book.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          onError={(e) => {
+                            e.target.src =
+                              'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
+                          }}
+                        />
+
+                      </div>
+
+                      <div
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
+
+                        <h3
+                          className="card-title"
+                          style={{
+                            fontSize: '0.98rem',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {book.title}
+                        </h3>
+
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '2px',
+                            fontWeight: 500,
+                          }}
+                        >
+                          by {book.author}
+                        </div>
+
+                        <p
+                          className="card-desc"
+                          style={{
+                            marginTop: '6px',
+                          }}
+                        >
+                          {book.description ||
+                            'Comprehensive resource on modern engineering, algorithms and systems design.'}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                    {/* Footer */}
+                    <div className="card-footer">
+
+                      <div className="card-meta-item">
+
+                        {book.availableCopies > 0 ? (
+
+                          <>
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                              ></circle>
+
+                              <line
+                                x1="2"
+                                y1="12"
+                                x2="22"
+                                y2="12"
+                              ></line>
+                            </svg>
+
+                            <span>
+                              {book.availableCopies}{' '}
+                              Available
+                            </span>
+                          </>
+
+                        ) : (
+
+                          <>
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <rect
+                                x="3"
+                                y="11"
+                                width="18"
+                                height="11"
+                                rx="2"
+                                ry="2"
+                              ></rect>
+
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+
+                            <span>
+                              Out of Stock
+                            </span>
+                          </>
+
+                        )}
+
+                      </div>
+
+                      <div className="card-meta-item">
+
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+
+                        <span>
+                          {book.totalCopies}{' '}
+                          Total Copies
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                );
+              })}
+
+            </div>
+
+          ) : (
+
+            /* Table List View */
+            <div className="saas-table-container">
+
+              <table className="saas-table">
+
+                <thead>
+
+                  <tr>
+                    <th>Code / ISBN</th>
+                    <th>Title & Author</th>
+                    <th>Category</th>
+                    <th>Publisher</th>
+                    <th>Availability</th>
+                    <th>Action</th>
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {filteredBooks.map((book) => (
+
+                    <tr key={book.id}>
+
+                      <td>
+
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: 'var(--text-main)',
+                          }}
+                        >
+                          {book.bookCode}
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: '0.74rem',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          {book.isbn}
+                        </div>
+
+                      </td>
+
+                      <td
+                        onClick={() =>
+                          setSelectedBook(book)
+                        }
+                        style={{
+                          cursor: 'pointer',
+                        }}
+                      >
+
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: 'var(--text-main)',
+                          }}
+                        >
+                          {book.title}
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: '0.78rem',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          {book.author}
+                        </div>
+
+                      </td>
+
+                      <td>
+
+                        <span
+                          className={`status-pill ${getCategoryClass(
+                            book.category
+                          )}`}
+                        >
+                          {book.category}
+                        </span>
+
+                      </td>
+
+                      <td>
+                        {book.publisher}
+                      </td>
+
+                      <td>
+
+                        <span
+                          className={`status-pill ${
+                            book.availableCopies > 0
+                              ? 'status-available'
+                              : 'status-overdue'
+                          }`}
+                        >
+                          {book.availableCopies > 0
+                            ? `${book.availableCopies} of ${book.totalCopies} In Stock`
+                            : 'Out of Stock'}
+                        </span>
+
+                      </td>
+
+                      <td>
+
+                        {userRole === 'MEMBER' ? (
+
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() =>
+                              handleMemberAction(book)
+                            }
+                          >
+                            {book.availableCopies > 0
+                              ? 'Borrow'
+                              : 'Reserve'}
+                          </button>
+
+                        ) : (
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '6px',
+                            }}
+                          >
+
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() =>
+                                handleEditBook(book)
+                              }
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() =>
+                                onDeleteBook(book.id)
+                              }
+                            >
+                              Archive
+                            </button>
+
+                          </div>
+
+                        )}
+
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+          {userRole === 'MEMBER' &&
+            activeMember && (
+
+              <BookRecommendations
+                activeMember={activeMember}
+                onOpenBook={setSelectedBook}
+                wishlistRefreshKey={
+                  wishlistRefreshKey
+                }
+              />
+
+            )}
+
+        </>
+
+      )}
+
+      {/* Book Details Modal */}
+      {selectedBook && (
+
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+          }}
+          onClick={() =>
+            setSelectedBook(null)
+          }
+        >
+
+          <div
+            className="card"
+            style={{
+              width: 'min(700px, 95vw)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              position: 'relative',
+              padding: '28px',
+            }}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
+            {/* Close Button */}
+            <button
+              onClick={() =>
+                setSelectedBook(null)
+              }
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                border: 'none',
+                background: 'transparent',
+                fontSize: '24px',
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+
+            {/* Book Details */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '25px',
+                alignItems: 'flex-start',
+              }}
+            >
+
+              <img
+                src={selectedBook.coverImage}
+                alt={selectedBook.title}
+                style={{
+                  width: '160px',
+                  height: '230px',
+                  objectFit: 'cover',
+                  borderRadius: '10px',
+                }}
+                onError={(e) => {
+                  e.target.src =
+                    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
+                }}
+              />
+
               <div
                 style={{
-                  display: 'flex',
-                  gap: '25px',
-                  alignItems: 'flex-start',
+                  flex: 1,
                 }}
               >
-                <img
-                  src={selectedBook.coverImage}
-                  alt={selectedBook.title}
-                  style={{
-                    width: '160px',
-                    height: '230px',
-                    objectFit: 'cover',
-                    borderRadius: '10px',
-                  }}
-                  onError={(e) => {
-                    e.target.src =
-                      'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80';
-                  }}
-                />
 
-                <div style={{ flex: 1 }}>
-                  <h2>{selectedBook.title}</h2>
-
-                  <p style={{ color: 'var(--text-muted)' }}>
-                    by {selectedBook.author}
-                  </p>
-
-                  <div style={{ display: 'grid', gap: '10px' }}>
-                    <div>
-                      <strong>Book Code:</strong> {selectedBook.bookCode}
-                    </div>
-
-                    <div>
-                      <strong>ISBN:</strong> {selectedBook.isbn}
-                    </div>
-
-                    <div>
-                      <strong>Publisher:</strong> {selectedBook.publisher}
-                    </div>
-
-                    <div>
-                      <strong>Category:</strong> {selectedBook.category}
-                    </div>
-
-                    <div>
-                      <strong>Total Copies:</strong> {selectedBook.totalCopies}
-                    </div>
-
-                    <div>
-                      <strong>Available Copies:</strong>{' '}
-                      {selectedBook.availableCopies}
-                    </div>
-
-                    <div>
-                      <strong>Status:</strong>{' '}
-                      {selectedBook.availableCopies > 0
-                        ? 'Available'
-                        : 'Out of Stock'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div style={{ marginTop: '25px' }}>
-                <h3>Description</h3>
+                <h2>
+                  {selectedBook.title}
+                </h2>
 
                 <p
                   style={{
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.7,
+                    color: 'var(--text-muted)',
                   }}
                 >
-                  {selectedBook.description ||
-                    'No description available for this book.'}
+                  by {selectedBook.author}
                 </p>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: '10px',
+                  }}
+                >
+
+                  <div>
+                    <strong>
+                      Book Code:
+                    </strong>{' '}
+                    {selectedBook.bookCode}
+                  </div>
+
+                  <div>
+                    <strong>
+                      ISBN:
+                    </strong>{' '}
+                    {selectedBook.isbn}
+                  </div>
+
+                  <div>
+                    <strong>
+                      Publisher:
+                    </strong>{' '}
+                    {selectedBook.publisher}
+                  </div>
+
+                  <div>
+                    <strong>
+                      Category:
+                    </strong>{' '}
+                    {selectedBook.category}
+                  </div>
+
+                  <div>
+                    <strong>
+                      Total Copies:
+                    </strong>{' '}
+                    {selectedBook.totalCopies}
+                  </div>
+
+                  <div>
+                    <strong>
+                      Available Copies:
+                    </strong>{' '}
+                    {selectedBook.availableCopies}
+                  </div>
+
+                  <div>
+                    <strong>
+                      Status:
+                    </strong>{' '}
+                    {selectedBook.availableCopies > 0
+                      ? 'Available'
+                      : 'Out of Stock'}
+                  </div>
+
+                </div>
+
               </div>
 
-              {/* Member Action */}
-              {userRole === 'MEMBER' && (
-                <div
-                  style={{
-                    marginTop: '25px',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setSelectedBook(null);
-                      handleMemberAction(selectedBook);
-                    }}
-                  >
-                    {selectedBook.availableCopies > 0
-                      ? 'Borrow Book'
-                      : 'Reserve Book'}
-                  </button>
-                </div>
-              )}
-
-              {/* Admin Actions */}
-              {userRole === 'ADMIN' && (
-                <div
-                  style={{
-                    marginTop: '25px',
-                    display: 'flex',
-                    gap: '10px',
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setSelectedBook(null);
-                      handleEditBook(selectedBook);
-                    }}
-                  >
-                    Edit Book
-                  </button>
-
-                  <button
-                    className="btn btn-secondary"
-                    style={{
-                      color: 'var(--danger)',
-                      borderColor: 'var(--danger)',
-                    }}
-                    onClick={() => {
-                      setSelectedBook(null);
-                      onDeleteBook(selectedBook.id);
-                    }}
-                  >
-                    Archive Book
-                  </button>
-                </div>
-              )}
             </div>
+
+            {/* Description */}
+            <div
+              style={{
+                marginTop: '25px',
+              }}
+            >
+
+              <h3>
+                Description
+              </h3>
+
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.7,
+                }}
+              >
+                {selectedBook.description ||
+                  'No description available for this book.'}
+              </p>
+
+            </div>
+
+            {userRole === 'MEMBER' &&
+              activeMember && (
+
+                <BookEngagementPanel
+                  book={selectedBook}
+                  activeMember={activeMember}
+                  onWishlistChanged={() =>
+                    setWishlistRefreshKey(
+                      (value) => value + 1
+                    )
+                  }
+                />
+
+              )}
+
+            {/* Member Action */}
+            {userRole === 'MEMBER' && (
+
+              <div
+                style={{
+                  marginTop: '25px',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                }}
+              >
+
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setSelectedBook(null);
+                    handleMemberAction(
+                      selectedBook
+                    );
+                  }}
+                >
+                  {selectedBook.availableCopies > 0
+                    ? 'Borrow Book'
+                    : 'Reserve Book'}
+                </button>
+
+              </div>
+
+            )}
+
+            {/* Admin Actions */}
+            {userRole === 'ADMIN' && (
+
+              <div
+                style={{
+                  marginTop: '25px',
+                  display: 'flex',
+                  gap: '10px',
+                  justifyContent: 'flex-end',
+                }}
+              >
+
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setSelectedBook(null);
+                    handleEditBook(
+                      selectedBook
+                    );
+                  }}
+                >
+                  Edit Book
+                </button>
+
+                <button
+                  className="btn btn-secondary"
+                  style={{
+                    color: 'var(--danger)',
+                    borderColor: 'var(--danger)',
+                  }}
+                  onClick={() => {
+                    setSelectedBook(null);
+                    onDeleteBook(
+                      selectedBook.id
+                    );
+                  }}
+                >
+                  Archive Book
+                </button>
+
+              </div>
+
+            )}
+
           </div>
-        )}
+
+        </div>
+
+      )}
+
     </div>
   );
 }
-
