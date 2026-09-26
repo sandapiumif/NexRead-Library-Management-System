@@ -40,13 +40,22 @@ public class MemberController {
     private MembershipTypeChangeRequestRepository
             membershipTypeChangeRequestRepository;
 
-    // GET all members
+
+    // =========================================================
+    // GET ALL MEMBERS
+    // =========================================================
+
     @GetMapping
     public List<Member> getAllMembers() {
+
         return memberService.getAllMembers();
     }
 
-    // GET member by ID
+
+    // =========================================================
+    // GET MEMBER BY ID
+    // =========================================================
+
     @GetMapping("/{id}")
     public ResponseEntity<Member> getMemberById(
             @PathVariable Long id) {
@@ -56,7 +65,11 @@ public class MemberController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // CREATE member
+
+    // =========================================================
+    // CREATE MEMBER
+    // =========================================================
+
     @PostMapping
     public ResponseEntity<?> registerMember(
             @RequestBody Member member) {
@@ -70,11 +83,18 @@ public class MemberController {
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
 
-    // UPDATE member status
+
+    // =========================================================
+    // UPDATE MEMBER STATUS
+    // =========================================================
+
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateMemberStatus(
             @PathVariable Long id,
@@ -84,23 +104,38 @@ public class MemberController {
 
             String status = body.get("status");
 
-            if (status == null || status.trim().isEmpty()) {
+            if (status == null ||
+                    status.trim().isEmpty()) {
+
                 return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Status is required"));
+                        .body(Map.of(
+                                "error",
+                                "Status is required"
+                        ));
             }
 
             return ResponseEntity.ok(
-                    memberService.updateMemberStatus(id, status)
+                    memberService.updateMemberStatus(
+                            id,
+                            status
+                    )
             );
 
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
 
-    // APPROVE pending member
+
+    // =========================================================
+    // APPROVE PENDING MEMBER
+    // =========================================================
+
     @PutMapping("/{id}/approve")
     public ResponseEntity<?> approveMember(
             @PathVariable Long id) {
@@ -114,11 +149,18 @@ public class MemberController {
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
 
-    // REJECT pending member
+
+    // =========================================================
+    // REJECT PENDING MEMBER
+    // =========================================================
+
     @PutMapping("/{id}/reject")
     public ResponseEntity<?> rejectMember(
             @PathVariable Long id) {
@@ -132,11 +174,18 @@ public class MemberController {
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
 
-    // Renew expired membership
+
+    // =========================================================
+    // RENEW MEMBERSHIP
+    // =========================================================
+
     @PostMapping("/{id}/renew")
     public ResponseEntity<?> renewMembership(
             @PathVariable Long id) {
@@ -150,16 +199,17 @@ public class MemberController {
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(java.util.Map.of(
+                    .body(Map.of(
                             "error",
                             e.getMessage()
                     ));
         }
     }
 
+
     // =========================================================
-// REQUEST MEMBERSHIP TYPE CHANGE
-// =========================================================
+    // REQUEST MEMBERSHIP TYPE CHANGE
+    // =========================================================
 
     @PostMapping("/{id}/membership-type-change-request")
     public ResponseEntity<?> requestMembershipTypeChange(
@@ -192,14 +242,17 @@ public class MemberController {
         }
     }
 
-    // GET membership type change requests for a member
+
+    // =========================================================
+    // GET MEMBERSHIP TYPE CHANGE REQUESTS FOR MEMBER
+    // =========================================================
+
     @GetMapping("/{id}/membership-type-change-requests")
     public ResponseEntity<?> getMembershipTypeChangeRequests(
             @PathVariable Long id) {
 
         try {
 
-            // Make sure member exists
             memberService.getMemberById(id)
                     .orElseThrow(() ->
                             new IllegalArgumentException(
@@ -222,11 +275,14 @@ public class MemberController {
         }
     }
 
-    // =========================================================
-   // APPROVE MEMBERSHIP TYPE CHANGE
-   // =========================================================
 
-    @PutMapping("/membership-type-change-requests/{requestId}/approve")
+    // =========================================================
+    // APPROVE MEMBERSHIP TYPE CHANGE
+    // =========================================================
+
+    @PutMapping(
+            "/membership-type-change-requests/{requestId}/approve"
+    )
     public ResponseEntity<?> approveMembershipTypeChange(
             @PathVariable Long requestId) {
 
@@ -248,19 +304,27 @@ public class MemberController {
         }
     }
 
-    // =========================================================
-   // REJECT MEMBERSHIP TYPE CHANGE
-   // =========================================================
 
-    @PutMapping("/membership-type-change-requests/{requestId}/reject")
+    // =========================================================
+    // REJECT MEMBERSHIP TYPE CHANGE
+    // =========================================================
+
+    @PutMapping(
+            "/membership-type-change-requests/{requestId}/reject"
+    )
     public ResponseEntity<?> rejectMembershipTypeChange(
-            @PathVariable Long requestId) {
+            @PathVariable Long requestId,
+            @RequestBody Map<String, String> body) {
 
         try {
 
+            String rejectionReason =
+                    body.get("reason");
+
             return ResponseEntity.ok(
                     memberService.rejectMembershipTypeChange(
-                            requestId
+                            requestId,
+                            rejectionReason
                     )
             );
 
@@ -274,7 +338,11 @@ public class MemberController {
         }
     }
 
-    // GET member renewal history
+
+    // =========================================================
+    // GET MEMBER RENEWAL HISTORY
+    // =========================================================
+
     @GetMapping("/{id}/renewal-history")
     public ResponseEntity<?> getRenewalHistory(
             @PathVariable Long id) {
@@ -286,7 +354,11 @@ public class MemberController {
         return ResponseEntity.ok(history);
     }
 
-    // UPDATE member details
+
+    // =========================================================
+    // UPDATE MEMBER DETAILS
+    // =========================================================
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateMember(
             @PathVariable Long id,
@@ -295,17 +367,27 @@ public class MemberController {
         try {
 
             return ResponseEntity.ok(
-                    memberService.updateMember(id, member)
+                    memberService.updateMember(
+                            id,
+                            member
+                    )
             );
 
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
 
-    // DELETE / deactivate member
+
+    // =========================================================
+    // DELETE / DEACTIVATE MEMBER
+    // =========================================================
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteMember(
             @PathVariable Long id) {
@@ -324,9 +406,13 @@ public class MemberController {
         } catch (IllegalArgumentException e) {
 
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error",
+                            e.getMessage()
+                    ));
         }
     }
+
 
     // =========================================================
     // UPLOAD VERIFICATION DOCUMENT
@@ -345,9 +431,12 @@ public class MemberController {
             Member member = memberService.getMemberById(id)
                     .orElseThrow(() ->
                             new IllegalArgumentException(
-                                    "Member not found"));
+                                    "Member not found"
+                            )
+                    );
 
             if (file == null || file.isEmpty()) {
+
                 return ResponseEntity.badRequest()
                         .body(Map.of(
                                 "error",
@@ -368,7 +457,8 @@ public class MemberController {
                         ));
             }
 
-            String contentType = file.getContentType();
+            String contentType =
+                    file.getContentType();
 
             if (contentType == null ||
                     (!contentType.equals("application/pdf") &&
@@ -402,6 +492,7 @@ public class MemberController {
                     originalFileName.lastIndexOf('.');
 
             if (dotIndex >= 0) {
+
                 extension =
                         originalFileName.substring(dotIndex);
             }
@@ -433,6 +524,14 @@ public class MemberController {
             Member savedMember =
                     memberService.saveMember(member);
 
+            // =====================================================
+            // ADMIN NOTIFICATION
+            // =====================================================
+
+            memberService.notifyVerificationDocumentUploaded(
+                    savedMember
+            );
+
             return ResponseEntity.ok(savedMember);
 
         } catch (IllegalArgumentException e) {
@@ -453,6 +552,7 @@ public class MemberController {
         }
     }
 
+
     // =========================================================
     // VIEW VERIFICATION DOCUMENT
     // =========================================================
@@ -466,7 +566,9 @@ public class MemberController {
             Member member = memberService.getMemberById(id)
                     .orElseThrow(() ->
                             new IllegalArgumentException(
-                                    "Member not found"));
+                                    "Member not found"
+                            )
+                    );
 
             if (member.getVerificationDocument() == null ||
                     member.getVerificationDocument().trim().isEmpty()) {
@@ -475,9 +577,12 @@ public class MemberController {
             }
 
             Path filePath =
-                    Paths.get(member.getVerificationDocument());
+                    Paths.get(
+                            member.getVerificationDocument()
+                    );
 
             if (!Files.exists(filePath)) {
+
                 return ResponseEntity.notFound().build();
             }
 
@@ -490,13 +595,16 @@ public class MemberController {
                     Files.probeContentType(filePath);
 
             if (contentType == null) {
+
                 contentType =
                         MediaType.APPLICATION_OCTET_STREAM_VALUE;
             }
 
             return ResponseEntity.ok()
                     .contentType(
-                            MediaType.parseMediaType(contentType)
+                            MediaType.parseMediaType(
+                                    contentType
+                            )
                     )
                     .header(
                             HttpHeaders.CONTENT_DISPOSITION,
@@ -516,6 +624,7 @@ public class MemberController {
         }
     }
 
+
     // =========================================================
     // VERIFY / REJECT DOCUMENT
     // =========================================================
@@ -530,6 +639,9 @@ public class MemberController {
             String verificationStatus =
                     body.get("verificationStatus");
 
+            String rejectionReason =
+                    body.get("reason");
+
             if (verificationStatus == null ||
                     verificationStatus.trim().isEmpty()) {
 
@@ -543,7 +655,8 @@ public class MemberController {
             return ResponseEntity.ok(
                     memberService.updateVerificationStatus(
                             id,
-                            verificationStatus
+                            verificationStatus,
+                            rejectionReason
                     )
             );
 

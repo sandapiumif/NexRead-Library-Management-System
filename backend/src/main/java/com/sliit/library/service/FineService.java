@@ -22,6 +22,9 @@ public class FineService {
     @Autowired
     private MemberRepository memberRepo;
 
+    @Autowired
+    private NotificationService notificationService;
+
 
     // =========================
     // READ - Get all fines
@@ -83,7 +86,18 @@ public class FineService {
         }
 
 
-        return fineRepo.save(fine);
+        Fine savedFine = fineRepo.save(fine);
+
+        notificationService.createMemberNotification(
+                member,
+                "Fine Created",
+                "A fine of Rs. " + savedFine.getAmount() + " has been added to your account.",
+                "FINE",
+                "FINE",
+                savedFine.getId()
+        );
+
+        return savedFine;
     }
 
 
@@ -158,6 +172,23 @@ public class FineService {
         }
 
 
+        notificationService.createMemberNotification(
+                fine.getMember(),
+                "Fine Payment Confirmed",
+                "Your fine payment of Rs. " + fine.getAmount() + " has been recorded successfully. Receipt: " + fine.getReceiptNumber() + ".",
+                "FINE_PAID",
+                "FINE",
+                fine.getId()
+        );
+
+        notificationService.createAdminNotification(
+                "Fine Payment Received",
+                "Member " + fine.getMember().getFullName() + " paid fine " + fine.getFineCode() + ".",
+                "FINE_PAID",
+                "FINE",
+                fine.getId()
+        );
+
         return fine;
     }
 
@@ -208,7 +239,18 @@ public class FineService {
         }
 
 
-        return fineRepo.save(fine);
+        Fine savedFine = fineRepo.save(fine);
+
+        notificationService.createMemberNotification(
+                fine.getMember(),
+                "Fine Updated",
+                "Your fine record " + fine.getFineCode() + " has been updated by library staff.",
+                "FINE",
+                "FINE",
+                fine.getId()
+        );
+
+        return savedFine;
     }
 
 
@@ -238,5 +280,14 @@ public class FineService {
         fine.setStatus("CANCELLED");
 
         fineRepo.save(fine);
+
+        notificationService.createMemberNotification(
+                fine.getMember(),
+                "Fine Cancelled",
+                "Your fine " + fine.getFineCode() + " has been cancelled by library staff.",
+                "FINE",
+                "FINE",
+                fine.getId()
+        );
     }
 }

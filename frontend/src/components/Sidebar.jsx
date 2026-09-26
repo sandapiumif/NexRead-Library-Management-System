@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function Sidebar({
   activeView,
@@ -11,6 +11,64 @@ export default function Sidebar({
   toggleTheme,
   onLogout,
 }) {
+  const [adminActivityCounts, setAdminActivityCounts] = useState({});
+
+  useEffect(() => {
+    if (userRole !== 'ADMIN') {
+      setAdminActivityCounts({});
+      return undefined;
+    }
+
+    const loadAdminActivityCounts = async () => {
+      try {
+        const response = await fetch(
+          'http://localhost:8080/api/notifications/admin/unread-counts'
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to load admin activity counts.');
+        }
+
+        const data = await response.json();
+        setAdminActivityCounts(data || {});
+      } catch (error) {
+        console.error('Failed to load admin activity counts:', error);
+      }
+    };
+
+    loadAdminActivityCounts();
+    const interval = setInterval(loadAdminActivityCounts, 10000);
+
+    return () => clearInterval(interval);
+  }, [userRole]);
+
+  const getCount = (key) => Number(adminActivityCounts[key] || 0);
+  const borrowingCount = getCount('BORROWING') + getCount('BORROWING_REQUEST');
+
+  const ActivityBadge = ({ count }) => (
+    count > 0 ? (
+      <span
+        style={{
+          marginLeft: 'auto',
+          minWidth: '18px',
+          height: '18px',
+          padding: '0 5px',
+          borderRadius: '999px',
+          background: '#ef4444',
+          color: '#fff',
+          fontSize: '10px',
+          fontWeight: 800,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          lineHeight: 1,
+        }}
+      >
+        {count > 99 ? '99+' : count}
+      </span>
+    ) : null
+  );
+
   return (
     <aside className="sidebar">
       {/* Brand Header */}
@@ -74,6 +132,19 @@ export default function Sidebar({
 
             <div className="sidebar-section-label">Operations & Management</div>
             <button
+              className={`sidebar-nav-item ${activeView === 'borrowings' ? 'active' : ''}`}
+              onClick={() => setActiveView('borrowings')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+              <span>Borrowing Desk</span>
+              <ActivityBadge count={borrowingCount} />
+            </button>
+
+            <button
               className={`sidebar-nav-item ${activeView === 'reservations' ? 'active' : ''}`}
               onClick={() => setActiveView('reservations')}
             >
@@ -82,6 +153,7 @@ export default function Sidebar({
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
               <span>Reservations Queue</span>
+              <ActivityBadge count={getCount('RESERVATION')} />
             </button>
 
             <button
@@ -93,6 +165,7 @@ export default function Sidebar({
                 <line x1="2" y1="10" x2="22" y2="10"></line>
               </svg>
               <span>Fines & Revenue</span>
+              <ActivityBadge count={getCount('FINE')} />
             </button>
 
             <button
@@ -106,6 +179,7 @@ export default function Sidebar({
                 <line x1="9" y1="15" x2="15" y2="15"></line>
               </svg>
               <span>Purchase Requests</span>
+              <ActivityBadge count={getCount('BOOK_REQUEST')} />
             </button>
 
             <div className="sidebar-section-label">Management</div>
@@ -120,6 +194,7 @@ export default function Sidebar({
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
               <span>Members Directory</span>
+              <ActivityBadge count={getCount('MEMBERSHIP')} />
             </button>
           </>
         ) : (
@@ -169,6 +244,30 @@ export default function Sidebar({
                 <path d="M12 6v6l4 2"></path>
               </svg>
               <span>Borrowed Books</span>
+            </button>
+
+            <button
+              className={`sidebar-nav-item ${activeView === 'borrowing-history' ? 'active' : ''}`}
+              onClick={() => setActiveView('borrowing-history')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12a9 9 0 1 0 18 0"></path>
+                <polyline points="12 7 12 12 15 14"></polyline>
+              </svg>
+              <span>Borrowing History</span>
+            </button>
+
+            <button
+              className={`sidebar-nav-item ${activeView === 'my-borrowing-requests' ? 'active' : ''}`}
+              onClick={() => setActiveView('my-borrowing-requests')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="8" y1="13" x2="16" y2="13"></line>
+                <line x1="8" y1="17" x2="16" y2="17"></line>
+              </svg>
+              <span>Borrowing Requests</span>
             </button>
 
             <button

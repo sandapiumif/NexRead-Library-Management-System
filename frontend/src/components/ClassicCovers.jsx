@@ -11,7 +11,7 @@ export const BurroughsNovaCover = ({ className = '', style = {} }) => (
     {/* Cream Top Header */}
     <rect x="0" y="0" width="200" height="74" fill="#FBF9F5" />
     <line x1="0" y1="74" x2="200" y2="74" stroke="#E2E0D8" strokeWidth="1" />
-    
+
     {/* Penguin Logo & Series */}
     <ellipse cx="22" cy="24" rx="8" ry="11" fill="#FF5E13" />
     <ellipse cx="22" cy="24" rx="5" ry="8" fill="#FFFFFF" />
@@ -39,7 +39,7 @@ export const BurroughsNovaCover = ({ className = '', style = {} }) => (
 
     {/* Lower Artwork (Collage with Red Target Circle matching photo) */}
     <rect x="0" y="74" width="200" height="216" fill="#18181B" />
-    
+
     {/* Collage Patches */}
     <rect x="14" y="86" width="80" height="110" fill="#27272A" />
     <rect x="100" y="86" width="86" height="70" fill="#3F3F46" />
@@ -81,7 +81,7 @@ export const BurroughsSoftCover = ({ className = '', style = {} }) => (
     {/* Cream Top Header */}
     <rect x="0" y="0" width="200" height="74" fill="#FBF9F5" />
     <line x1="0" y1="74" x2="200" y2="74" stroke="#E2E0D8" strokeWidth="1" />
-    
+
     {/* Penguin Logo & Series */}
     <ellipse cx="22" cy="24" rx="8" ry="11" fill="#FF5E13" />
     <ellipse cx="22" cy="24" rx="5" ry="8" fill="#FFFFFF" />
@@ -141,7 +141,7 @@ export const BurroughsTicketCover = ({ className = '', style = {} }) => (
     {/* Cream Top Header */}
     <rect x="0" y="0" width="200" height="74" fill="#FBF9F5" />
     <line x1="0" y1="74" x2="200" y2="74" stroke="#E2E0D8" strokeWidth="1" />
-    
+
     {/* Penguin Logo & Series */}
     <ellipse cx="22" cy="24" rx="8" ry="11" fill="#FF5E13" />
     <ellipse cx="22" cy="24" rx="5" ry="8" fill="#FFFFFF" />
@@ -169,12 +169,12 @@ export const BurroughsTicketCover = ({ className = '', style = {} }) => (
 
     {/* Lower Artwork (Cyan, Navy, Emerald neon silhouette) */}
     <rect x="0" y="74" width="200" height="216" fill="#0B1329" />
-    
+
     {/* Geometric shards */}
     <rect x="20" y="90" width="160" height="180" fill="#1E293B" />
     <polygon points="30,105 105,95 90,260 20,245" fill="#0284C7" opacity="0.8" />
     <polygon points="85,110 170,100 180,265 105,255" fill="#0F766E" opacity="0.85" />
-    
+
     {/* Abstract masked face profile */}
     <ellipse cx="98" cy="165" rx="38" ry="52" fill="#E2E8F0" opacity="0.9" />
     <rect x="80" y="145" width="40" height="14" fill="#0284C7" />
@@ -200,7 +200,7 @@ export const GinsbergCover = ({ className = '', style = {} }) => (
     {/* Sage Green Top Header */}
     <rect x="0" y="0" width="200" height="74" fill="#E7EFE6" />
     <line x1="0" y1="74" x2="200" y2="74" stroke="#CBD5C8" strokeWidth="1" />
-    
+
     {/* Penguin Logo */}
     <ellipse cx="22" cy="24" rx="7" ry="10" fill="#FF5E13" />
     <ellipse cx="22" cy="24" rx="4" ry="7" fill="#FFFFFF" />
@@ -219,7 +219,7 @@ export const GinsbergCover = ({ className = '', style = {} }) => (
 
     {/* Lower Artwork: Bohemian Greenwich Village Cafe figurative scene */}
     <rect x="0" y="74" width="200" height="216" fill="#F4EDE0" />
-    
+
     {/* Expressive warm color planes */}
     <rect x="10" y="84" width="180" height="196" fill="#B45309" opacity="0.85" />
     <polygon points="15,90 90,85 110,180 20,175" fill="#D97706" />
@@ -282,7 +282,7 @@ export const FoucaultCover = ({ className = '', style = {} }) => (
     >
       Foucault
     </text>
-    
+
     <text
       x="80"
       y="142"
@@ -321,7 +321,7 @@ export const GenetCover = ({ className = '', style = {} }) => (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    
+
     {/* Facial contours and details */}
     <path d="M 85 55 C 95 50, 105 52, 110 58" fill="none" stroke="#1C1917" strokeWidth="3" strokeLinecap="round" />
     <circle cx="98" cy="68" r="4.5" fill="#1C1917" />

@@ -174,7 +174,7 @@ export default function BookCatalogSaaS({
         );
 
         setActionMessage(
-          `Successfully borrowed "${book.title}"! Due in 14 days.`
+          `Borrowing request submitted for "${book.title}". A librarian will review it before the book is issued.`
         );
 
       } else {
@@ -822,7 +822,7 @@ export default function BookCatalogSaaS({
                           }}
                         >
                           {book.availableCopies > 0
-                            ? 'Borrow'
+                            ? 'Request to Borrow'
                             : 'Reserve'}
                         </button>
 
@@ -1161,7 +1161,7 @@ export default function BookCatalogSaaS({
                             }
                           >
                             {book.availableCopies > 0
-                              ? 'Borrow'
+                              ? 'Request to Borrow'
                               : 'Reserve'}
                           </button>
 
@@ -1443,7 +1443,7 @@ export default function BookCatalogSaaS({
                   }}
                 >
                   {selectedBook.availableCopies > 0
-                    ? 'Borrow Book'
+                    ? 'Request to Borrow'
                     : 'Reserve Book'}
                 </button>
 

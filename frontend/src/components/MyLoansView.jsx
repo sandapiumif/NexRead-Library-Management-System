@@ -6,7 +6,7 @@ export default function MyLoansView({
   onReturnBook,
 }) {
   const [returnMsg, setReturnMsg] = useState('');
-  const memberBorrowings = borrowings.filter((b) => b.member?.id === activeMember?.id);
+  const memberBorrowings = borrowings.filter((b) => b.member?.id === activeMember?.id && (b.status === 'BORROWED' || b.status === 'OVERDUE'));
 
   const handleReturn = async (id) => {
     try {
@@ -27,10 +27,10 @@ export default function MyLoansView({
       <div className="saas-page-header">
         <div className="page-title-group">
           <h1>
-            My Borrowed Books <span className="page-title-count">({memberBorrowings.length})</span>
+            My Active Loans <span className="page-title-count">({memberBorrowings.length})</span>
           </h1>
           <p className="page-subtitle">
-            Track active circulation checkouts, loan periods, and process returns.
+            Track your currently borrowed books, due dates, and process returns. Your completed loans are available under Borrowing History.
           </p>
         </div>
       </div>

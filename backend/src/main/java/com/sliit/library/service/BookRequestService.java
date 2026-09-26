@@ -8,6 +8,7 @@ import com.sliit.library.repository.BookRequestRepository;
 import com.sliit.library.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,6 +23,9 @@ public class BookRequestService {
 
     @Autowired
     private BookRepository bookRepo;
+
+    @Autowired
+    private NotificationService notificationService;
 
 
     // =========================
@@ -102,7 +106,17 @@ public class BookRequestService {
         );
 
 
-        return bookRequestRepo.save(request);
+        BookRequest savedRequest = bookRequestRepo.save(request);
+
+        notificationService.createAdminNotification(
+                "New Book Request",
+                "Member " + member.getFullName() + " requested the book \"" + request.getTitle() + "\".",
+                "BOOK_REQUEST",
+                "BOOK_REQUEST",
+                savedRequest.getId()
+        );
+
+        return savedRequest;
     }
 
 
@@ -143,7 +157,19 @@ public class BookRequestService {
         }
 
 
-        return bookRequestRepo.save(request);
+        BookRequest savedRequest = bookRequestRepo.save(request);
+
+        notificationService.createMemberNotification(
+                request.getMember(),
+                "Book Request Status Updated",
+                "Your book request for \"" + request.getTitle() + "\" is now " + request.getStatus() + "."
+                        + ((notes != null && !notes.trim().isEmpty()) ? " Note: " + notes.trim() : ""),
+                "BOOK_REQUEST",
+                "BOOK_REQUEST",
+                savedRequest.getId()
+        );
+
+        return savedRequest;
     }
 
 
@@ -175,5 +201,22 @@ public class BookRequestService {
         request.setStatus("CANCELLED");
 
         bookRequestRepo.save(request);
+
+        notificationService.createAdminNotification(
+                "Book Request Cancelled",
+                "Member " + request.getMember().getFullName() + " cancelled book request \"" + request.getTitle() + "\".",
+                "BOOK_REQUEST_CANCELLED",
+                "BOOK_REQUEST",
+                request.getId()
+        );
+
+        notificationService.createMemberNotification(
+                request.getMember(),
+                "Book Request Cancelled",
+                "Your book request for \"" + request.getTitle() + "\" has been cancelled.",
+                "BOOK_REQUEST_CANCELLED",
+                "BOOK_REQUEST",
+                request.getId()
+        );
     }
 }

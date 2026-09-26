@@ -228,5 +228,5 @@ const handleUpdateStatus = async (id, status) => {
         </div>
       </div>
     </div>
-  );
+    );
 }

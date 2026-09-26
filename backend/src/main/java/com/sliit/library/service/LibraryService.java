@@ -46,6 +46,9 @@ public class LibraryService {
     @Autowired
     private BookRequestRepository bookRequestRepo;
 
+    @Autowired
+    private NotificationService notificationService;
+
 
     // ==============================
     // MEMBER REGISTRATION
@@ -297,154 +300,154 @@ public class LibraryService {
         return stats;
     }
 
-        // ==============================
-        // MEMBER PROFILE IMAGE
-        // ==============================
+    // ==============================
+    // MEMBER PROFILE IMAGE
+    // ==============================
 
-        public Member uploadProfileImage(
-                Long memberId,
-                MultipartFile file) {
+    public Member uploadProfileImage(
+            Long memberId,
+            MultipartFile file) {
 
-            Member member = memberRepo.findById(memberId)
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Member not found."
-                            )
-                    );
-
-            if (file == null || file.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Please select an image."
-                );
-            }
-
-            // Maximum file size = 5 MB
-            if (file.getSize() > 5 * 1024 * 1024) {
-                throw new IllegalArgumentException(
-                        "Profile image must be smaller than 5 MB."
-                );
-            }
-
-            String contentType = file.getContentType();
-
-            if (contentType == null ||
-                    !(contentType.equals("image/jpeg") ||
-                            contentType.equals("image/png") ||
-                            contentType.equals("image/webp"))) {
-
-                throw new IllegalArgumentException(
-                        "Only JPG, PNG, and WEBP images are allowed."
-                );
-            }
-
-            try {
-
-                // Create upload directory
-                Path uploadDirectory =
-                        Paths.get("uploads/profile-images");
-
-                Files.createDirectories(uploadDirectory);
-
-
-                // Delete old image if one exists
-                if (member.getProfileImage() != null &&
-                        !member.getProfileImage().trim().isEmpty()) {
-
-                    String oldImageUrl =
-                            member.getProfileImage();
-
-                    String oldFileName =
-                            oldImageUrl.substring(
-                                    oldImageUrl.lastIndexOf("/") + 1
-                            );
-
-                    Path oldFile =
-                            uploadDirectory.resolve(oldFileName);
-
-                    Files.deleteIfExists(oldFile);
-                }
-
-
-                // Determine file extension
-                String extension;
-
-                if (contentType.equals("image/png")) {
-                    extension = ".png";
-                } else if (contentType.equals("image/webp")) {
-                    extension = ".webp";
-                } else {
-                    extension = ".jpg";
-                }
-
-
-                // Generate unique filename
-                String fileName =
-                        UUID.randomUUID().toString() + extension;
-
-
-                // Save file
-                Path targetFile =
-                        uploadDirectory.resolve(fileName);
-
-                Files.copy(
-                        file.getInputStream(),
-                        targetFile
+        Member member = memberRepo.findById(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Member not found."
+                        )
                 );
 
-
-                // Store the actual saved filename in the database
-                member.setProfileImage(fileName);
-
-                return memberRepo.save(member);
-
-            } catch (IOException e) {
-
-                throw new IllegalArgumentException(
-                        "Failed to save profile image."
-                );
-            }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Please select an image."
+            );
         }
 
+        // Maximum file size = 5 MB
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException(
+                    "Profile image must be smaller than 5 MB."
+            );
+        }
 
-        public void deleteProfileImage(Long memberId) {
+        String contentType = file.getContentType();
 
-            Member member = memberRepo.findById(memberId)
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Member not found."
-                            )
-                    );
+        if (contentType == null ||
+                !(contentType.equals("image/jpeg") ||
+                        contentType.equals("image/png") ||
+                        contentType.equals("image/webp"))) {
 
-            if (member.getProfileImage() == null ||
-                    member.getProfileImage().trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Only JPG, PNG, and WEBP images are allowed."
+            );
+        }
 
-                return;
-            }
+        try {
 
-            try {
+            // Create upload directory
+            Path uploadDirectory =
+                    Paths.get("uploads/profile-images");
 
-                Path uploadDirectory =
-                        Paths.get("uploads/profile-images");
+            Files.createDirectories(uploadDirectory);
 
-                String fileName =
+
+            // Delete old image if one exists
+            if (member.getProfileImage() != null &&
+                    !member.getProfileImage().trim().isEmpty()) {
+
+                String oldImageUrl =
                         member.getProfileImage();
 
-                Path imageFile =
-                        uploadDirectory.resolve(fileName);
+                String oldFileName =
+                        oldImageUrl.substring(
+                                oldImageUrl.lastIndexOf("/") + 1
+                        );
 
-                Files.deleteIfExists(imageFile);
+                Path oldFile =
+                        uploadDirectory.resolve(oldFileName);
 
-            } catch (IOException e) {
-
-                throw new IllegalArgumentException(
-                        "Failed to remove profile image."
-                );
+                Files.deleteIfExists(oldFile);
             }
 
-            member.setProfileImage(null);
 
-            memberRepo.save(member);
+            // Determine file extension
+            String extension;
+
+            if (contentType.equals("image/png")) {
+                extension = ".png";
+            } else if (contentType.equals("image/webp")) {
+                extension = ".webp";
+            } else {
+                extension = ".jpg";
+            }
+
+
+            // Generate unique filename
+            String fileName =
+                    UUID.randomUUID().toString() + extension;
+
+
+            // Save file
+            Path targetFile =
+                    uploadDirectory.resolve(fileName);
+
+            Files.copy(
+                    file.getInputStream(),
+                    targetFile
+            );
+
+
+            // Store the actual saved filename in the database
+            member.setProfileImage(fileName);
+
+            return memberRepo.save(member);
+
+        } catch (IOException e) {
+
+            throw new IllegalArgumentException(
+                    "Failed to save profile image."
+            );
         }
+    }
+
+
+    public void deleteProfileImage(Long memberId) {
+
+        Member member = memberRepo.findById(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Member not found."
+                        )
+                );
+
+        if (member.getProfileImage() == null ||
+                member.getProfileImage().trim().isEmpty()) {
+
+            return;
+        }
+
+        try {
+
+            Path uploadDirectory =
+                    Paths.get("uploads/profile-images");
+
+            String fileName =
+                    member.getProfileImage();
+
+            Path imageFile =
+                    uploadDirectory.resolve(fileName);
+
+            Files.deleteIfExists(imageFile);
+
+        } catch (IOException e) {
+
+            throw new IllegalArgumentException(
+                    "Failed to remove profile image."
+            );
+        }
+
+        member.setProfileImage(null);
+
+        memberRepo.save(member);
+    }
 
 
 

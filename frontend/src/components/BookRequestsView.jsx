@@ -24,7 +24,11 @@ export default function BookRequestsView({
 
   // real-time check if book already exists in catalog
   const existingBookMatch = formData.title.trim()
-    ? books.find((b) => b.title.toLowerCase().includes(formData.title.trim().toLowerCase()))
+    ? books.find((b) =>
+        b.title
+          .toLowerCase()
+          .includes(formData.title.trim().toLowerCase())
+      )
     : null;
 
   const handleChange = (e) => {
@@ -34,28 +38,94 @@ export default function BookRequestsView({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedMemberId || !formData.title.trim() || !formData.author.trim() || !formData.reason.trim()) {
+
+    if (
+      !selectedMemberId ||
+      !formData.title.trim() ||
+      !formData.author.trim() ||
+      !formData.reason.trim()
+    ) {
       setErrorMsg('Please complete all required fields.');
       return;
     }
 
     if (existingBookMatch) {
-      setErrorMsg(`Request rejected: "${existingBookMatch.title}" already exists in our library collection!`);
+      setErrorMsg(
+        `Request rejected: "${existingBookMatch.title}" already exists in our library collection!`
+      );
       return;
     }
 
     setLoading(true);
     setErrorMsg('');
+
     try {
-      const res = await onSubmitRequest(Number(selectedMemberId), formData);
-      setSuccessMsg(`Acquisition request submitted successfully! Request ID: ${res.requestCode}.`);
-      setFormData({ title: '', author: '', isbn: '', publisher: '', reason: '' });
+      const res = await onSubmitRequest(
+        Number(selectedMemberId),
+        formData
+      );
+
+      setSuccessMsg(
+        `Acquisition request submitted successfully! Request ID: ${res.requestCode}.`
+      );
+
+      setFormData({
+        title: '',
+        author: '',
+        isbn: '',
+        publisher: '',
+        reason: '',
+      });
+
       setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to submit book request.');
+      setErrorMsg(
+        err.message || 'Failed to submit book request.'
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  // ==============================
+  // Approve request
+  // ==============================
+  const handleApprove = (requestId) => {
+    onUpdateRequestStatus(
+      requestId,
+      'APPROVED',
+      'Approved for acquisition'
+    );
+  };
+
+  // ==============================
+  // Reject request with reason
+  // ==============================
+  const handleReject = (requestId) => {
+    const rejectionReason = window.prompt(
+      'Please enter the reason for rejecting this book request:'
+    );
+
+    // User clicked Cancel
+    if (rejectionReason === null) {
+      return;
+    }
+
+    const trimmedReason = rejectionReason.trim();
+
+    // Empty reason is not allowed
+    if (!trimmedReason) {
+      window.alert(
+        'A rejection reason is required. The book request was not rejected.'
+      );
+      return;
+    }
+
+    onUpdateRequestStatus(
+      requestId,
+      'REJECTED',
+      trimmedReason
+    );
   };
 
   return (
@@ -65,26 +135,58 @@ export default function BookRequestsView({
           <h2 className="section-title">
             <span>Book Request Management</span>
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '0.88rem',
+            }}
+          >
             Member Acquisition Requests, Collection Duplicate Check & Librarian Review
           </p>
         </div>
       </div>
 
       {/* Book Request Form */}
-      <div className="card" style={{ marginBottom: '2.5rem' }}>
-        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', marginBottom: '1.25rem' }}>
+      <div
+        className="card"
+        style={{ marginBottom: '2.5rem' }}
+      >
+        <h3
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: '1.25rem',
+            marginBottom: '1.25rem',
+          }}
+        >
           Submit New Book Acquisition Request
         </h3>
 
-        {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
-        {successMsg && <div className="alert alert-success">{successMsg}</div>}
+        {errorMsg && (
+          <div className="alert alert-danger">
+            {errorMsg}
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="alert alert-success">
+            {successMsg}
+          </div>
+        )}
 
         {/* Existing Book Warning Alert */}
         {existingBookMatch && (
-          <div className="alert alert-danger" style={{ borderLeft: '5px solid var(--danger)' }}>
-            <strong>Duplicate Warning:</strong> A book matching this title is already cataloged in the library collection!
-            (Title: <em>{existingBookMatch.title}</em>, Code: <code>{existingBookMatch.bookCode}</code>).
+          <div
+            className="alert alert-danger"
+            style={{
+              borderLeft: '5px solid var(--danger)',
+            }}
+          >
+            <strong>Duplicate Warning:</strong> A book matching
+            this title is already cataloged in the library
+            collection!
+            (Title: <em>{existingBookMatch.title}</em>, Code:{' '}
+            <code>{existingBookMatch.bookCode}</code>).
             Requests for existing titles cannot be submitted.
           </div>
         )}
@@ -92,15 +194,23 @@ export default function BookRequestsView({
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Requesting Member *</label>
+              <label className="form-label">
+                Requesting Member *
+              </label>
+
               <select
                 id="req-member-select"
                 className="form-select"
                 value={selectedMemberId}
-                onChange={(e) => setSelectedMemberId(e.target.value)}
+                onChange={(e) =>
+                  setSelectedMemberId(e.target.value)
+                }
                 required
               >
-                <option value="">-- Choose Member --</option>
+                <option value="">
+                  -- Choose Member --
+                </option>
+
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.memberCode} - {m.fullName}
@@ -110,7 +220,10 @@ export default function BookRequestsView({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Book Title *</label>
+              <label className="form-label">
+                Book Title *
+              </label>
+
               <input
                 id="req-title"
                 type="text"
@@ -126,7 +239,10 @@ export default function BookRequestsView({
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Author Name *</label>
+              <label className="form-label">
+                Author Name *
+              </label>
+
               <input
                 id="req-author"
                 type="text"
@@ -140,7 +256,10 @@ export default function BookRequestsView({
             </div>
 
             <div className="form-group">
-              <label className="form-label">ISBN (if known)</label>
+              <label className="form-label">
+                ISBN (if known)
+              </label>
+
               <input
                 id="req-isbn"
                 type="text"
@@ -153,7 +272,10 @@ export default function BookRequestsView({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Publisher</label>
+              <label className="form-label">
+                Publisher
+              </label>
+
               <input
                 id="req-publisher"
                 type="text"
@@ -167,7 +289,10 @@ export default function BookRequestsView({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Reason / Academic Purpose *</label>
+            <label className="form-label">
+              Reason / Academic Purpose *
+            </label>
+
             <textarea
               id="req-reason"
               name="reason"
@@ -180,14 +305,21 @@ export default function BookRequestsView({
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}
+          >
             <button
               id="submit-request-btn"
               type="submit"
               className="btn btn-primary"
               disabled={loading || !!existingBookMatch}
             >
-              {loading ? 'Validating & Submitting...' : 'Submit Acquisition Request'}
+              {loading
+                ? 'Validating & Submitting...'
+                : 'Submit Acquisition Request'}
             </button>
           </div>
         </form>
@@ -197,7 +329,9 @@ export default function BookRequestsView({
       <div className="card">
         <div className="section-header">
           <h3 className="section-title">
-            <span>Submitted Acquisition Requests ({requests.length})</span>
+            <span>
+              Submitted Acquisition Requests ({requests.length})
+            </span>
           </h3>
         </div>
 
@@ -211,73 +345,88 @@ export default function BookRequestsView({
                 <th>Author</th>
                 <th>Reason</th>
                 <th>Status</th>
-                {userRole === 'LIBRARIAN' && <th>Librarian Actions</th>}
+
+                {userRole === 'LIBRARIAN' && (
+                  <th>Librarian Actions</th>
+                )}
               </tr>
             </thead>
+
             <tbody>
               {requests.map((r) => (
                 <tr key={r.id}>
-                  <td><strong>{r.requestCode}</strong></td>
-                  <td>{r.member?.fullName}</td>
-                  <td><strong>{r.title}</strong></td>
-                  <td>{r.author}</td>
-                 <td
-                   style={{
-                     width: '300px',
-                     maxWidth: '300px',
-                     minWidth: '300px',
-                     fontSize: '0.8rem',
-                     color: 'var(--text-secondary)',
-                     whiteSpace: 'normal',
-                     wordBreak: 'break-word',
-                     overflowWrap: 'anywhere',
-                     verticalAlign: 'middle',
-                   }}
-                 >
-                   {r.reason || '—'}
-                 </td>
+                  <td>
+                    <strong>{r.requestCode}</strong>
+                  </td>
 
-                 <td
-                   style={{
-                     width: '130px',
-                     minWidth: '130px',
-                     maxWidth: '130px',
-                     textAlign: 'center',
-                     verticalAlign: 'middle',
-                     whiteSpace: 'nowrap',
-                   }}
-                 >
-                   <span
-                     className={`badge ${
-                       r.status === 'APPROVED'
-                         ? 'badge-success'
-                         : r.status === 'REJECTED'
-                         ? 'badge-danger'
-                         : 'badge-warning'
-                     }`}
-                     style={{
-                       display: 'inline-flex',
-                       alignItems: 'center',
-                       justifyContent: 'center',
-                       whiteSpace: 'nowrap',
-                     }}
-                   >
-                     {r.status}
-                   </span>
-                 </td>
+                  <td>{r.member?.fullName}</td>
+
+                  <td>
+                    <strong>{r.title}</strong>
+                  </td>
+
+                  <td>{r.author}</td>
+
+                  <td
+                    style={{
+                      width: '300px',
+                      maxWidth: '300px',
+                      minWidth: '300px',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'anywhere',
+                      verticalAlign: 'middle',
+                    }}
+                  >
+                    {r.reason || '—'}
+                  </td>
+
+                  <td
+                    style={{
+                      width: '130px',
+                      minWidth: '130px',
+                      maxWidth: '130px',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span
+                      className={`badge ${
+                        r.status === 'APPROVED'
+                          ? 'badge-success'
+                          : r.status === 'REJECTED'
+                          ? 'badge-danger'
+                          : 'badge-warning'
+                      }`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {r.status}
+                    </span>
+                  </td>
+
                   {userRole === 'LIBRARIAN' && (
                     <td>
                       {r.status === 'PENDING' ? (
-                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.35rem',
+                            flexWrap: 'wrap',
+                          }}
+                        >
                           <button
                             id={`approve-req-btn-${r.id}`}
                             className="btn btn-success btn-sm"
                             onClick={() =>
-                              onUpdateRequestStatus(
-                                r.id,
-                                'APPROVED',
-                                'Approved for acquisition'
-                              )
+                              handleApprove(r.id)
                             }
                           >
                             Approve
@@ -287,11 +436,7 @@ export default function BookRequestsView({
                             id={`reject-req-btn-${r.id}`}
                             className="btn btn-danger btn-sm"
                             onClick={() =>
-                              onUpdateRequestStatus(
-                                r.id,
-                                'REJECTED',
-                                'Out of scope'
-                              )
+                              handleReject(r.id)
                             }
                           >
                             Reject
@@ -299,9 +444,16 @@ export default function BookRequestsView({
 
                           <button
                             className="btn btn-secondary btn-sm"
-                            style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                            style={{
+                              color: 'var(--danger)',
+                              borderColor: 'var(--danger)',
+                            }}
                             onClick={() => {
-                              if (window.confirm('Cancel this pending book request?')) {
+                              if (
+                                window.confirm(
+                                  'Cancel this pending book request?'
+                                )
+                              ) {
                                 onDeleteBookRequest(r.id);
                               }
                             }}
@@ -310,7 +462,12 @@ export default function BookRequestsView({
                           </button>
                         </div>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
                           {r.adminNotes || 'Processed'}
                         </span>
                       )}

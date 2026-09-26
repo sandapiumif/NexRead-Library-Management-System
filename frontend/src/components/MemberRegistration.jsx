@@ -220,12 +220,29 @@ export default function MemberRegistration({
   };
 
   const handleReject = async (id) => {
+    const rejectionReason = window.prompt(
+      'Please enter the reason for rejecting this membership application:'
+    );
+
+    if (rejectionReason === null) {
+      return;
+    }
+
+    const trimmedReason = rejectionReason.trim();
+
+    if (!trimmedReason) {
+      window.alert(
+        'A rejection reason is required. The membership application was not rejected.'
+      );
+      return;
+    }
+
     try {
-      await onRejectMember(id);
+      await onRejectMember(id, trimmedReason);
 
       setErrorMsg('');
       setSuccessMsg(
-        'Membership application rejected. The member cannot access library services.'
+        'Membership application rejected successfully.'
       );
 
       setTimeout(
@@ -271,12 +288,32 @@ const handleVerifyDocument = async (id) => {
 
 
 const handleRejectDocument = async (id) => {
+  const rejectionReason = window.prompt(
+    'Please enter the reason for rejecting this verification document:'
+  );
+
+  if (rejectionReason === null) {
+    return;
+  }
+
+  const trimmedReason = rejectionReason.trim();
+
+  if (!trimmedReason) {
+    window.alert(
+      'A rejection reason is required. The verification document was not rejected.'
+    );
+    return;
+  }
+
   try {
-    await onRejectMemberDocument(id);
+    await onRejectMemberDocument(
+      id,
+      trimmedReason
+    );
 
     setErrorMsg('');
     setSuccessMsg(
-      'Verification document rejected. A new document must be submitted.'
+      'Verification document rejected successfully.'
     );
 
     setTimeout(

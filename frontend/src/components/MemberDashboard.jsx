@@ -39,7 +39,7 @@ export default function MemberDashboard({
             Welcome back, {activeMember?.fullName || 'Library Member'}
           </h1>
           <p style={{ opacity: 0.85, fontSize: '0.92rem', maxWidth: '560px', lineHeight: 1.6 }}>
-            You have <strong>{activeLoans.length}</strong> active book loan{activeLoans.length === 1 ? '' : 's'} and <strong>{memberReservations.length}</strong> pending reservation{memberReservations.length === 1 ? '' : 's'}. 
+            You have <strong>{activeLoans.length}</strong> active book loan{activeLoans.length === 1 ? '' : 's'} and <strong>{memberReservations.length}</strong> pending reservation{memberReservations.length === 1 ? '' : 's'}.
             {totalFineAmount > 0 ? (
               <span style={{ color: '#fca5a5', fontWeight: 700, marginLeft: '6px' }}>
                 Outstanding dues: LKR {totalFineAmount.toFixed(2)}.
@@ -133,9 +133,14 @@ export default function MemberDashboard({
               Return books before due dates to avoid overdue fee assessments
             </div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={() => setActiveView('my-loans')}>
-            View All Loans →
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setActiveView('my-loans')}>
+              Active Loans →
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setActiveView('borrowing-history')}>
+              Borrowing History →
+            </button>
+          </div>
         </div>
 
         {activeLoans.length === 0 ? (

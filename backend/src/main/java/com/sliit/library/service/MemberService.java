@@ -25,65 +25,96 @@ public class MemberService {
     @Autowired
     private MembershipTypeChangeRequestRepository membershipTypeChangeRequestRepository;
 
-    // Get all members
+    @Autowired
+    private NotificationService notificationService;
+
+
+    // =========================================================
+    // GET ALL MEMBERS
+    // =========================================================
+
     public List<Member> getAllMembers() {
         return memberRepo.findAll();
     }
 
-    // Get member by ID
+
+    // =========================================================
+    // GET MEMBER BY ID
+    // =========================================================
+
     public Optional<Member> getMemberById(Long id) {
         return memberRepo.findById(id);
     }
 
-    // Save member
+
+    // =========================================================
+    // SAVE MEMBER
+    // =========================================================
+
     public Member saveMember(Member member) {
         return memberRepo.save(member);
     }
 
-    // Register new member
+
+    // =========================================================
+    // REGISTER NEW MEMBER
+    // =========================================================
+
     public Member registerMember(Member member) {
 
         if (member.getFullName() == null ||
                 member.getFullName().trim().isEmpty()) {
+
             throw new IllegalArgumentException("Full name is required");
         }
 
         if (member.getEmail() == null ||
                 member.getEmail().trim().isEmpty()) {
+
             throw new IllegalArgumentException("Email address is required");
         }
 
         if (member.getPhone() == null ||
                 member.getPhone().trim().isEmpty()) {
+
             throw new IllegalArgumentException("Phone number is required");
         }
 
         if (member.getAddress() == null ||
                 member.getAddress().trim().isEmpty()) {
+
             throw new IllegalArgumentException("Address is required");
         }
 
         if (member.getIdNumber() == null ||
                 member.getIdNumber().trim().isEmpty()) {
+
             throw new IllegalArgumentException(
-                    "National ID / Passport number is required");
+                    "National ID / Passport number is required"
+            );
         }
 
         if (memberRepo.findByEmail(member.getEmail().trim()).isPresent()) {
+
             throw new IllegalArgumentException(
-                    "A member with this email already exists");
+                    "A member with this email already exists"
+            );
         }
 
         if (memberRepo.findByIdNumber(member.getIdNumber().trim()).isPresent()) {
+
             throw new IllegalArgumentException(
-                    "A member with this ID / Passport number already exists");
+                    "A member with this ID / Passport number already exists"
+            );
         }
 
         long count = memberRepo.count() + 1001;
+
         member.setMemberCode("MEM-" + count);
 
         if (member.getMembershipType() == null ||
                 member.getMembershipType().trim().isEmpty()) {
+
             member.setMembershipType("STUDENT");
         }
 
@@ -97,27 +128,82 @@ public class MemberService {
         member.setExpiryDate(LocalDate.now().plusYears(1));
 
         if ("FACULTY".equalsIgnoreCase(member.getMembershipType())) {
+
             member.setMaxBorrowLimit(6);
+
         } else {
+
             member.setMaxBorrowLimit(3);
         }
 
-        return memberRepo.save(member);
+        Member savedMember = memberRepo.save(member);
+
+        // =====================================================
+        // ADMIN NOTIFICATION
+        // =====================================================
+
+        notificationService.createAdminNotification(
+                "New Membership Application",
+                "Member " + savedMember.getFullName()
+                        + " has submitted a new membership application.",
+                "MEMBERSHIP",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
-    // Update member status
+
+    // =========================================================
+    // UPDATE MEMBER STATUS
+    // =========================================================
+
     public Member updateMemberStatus(Long id, String status) {
 
         Member member = memberRepo.findById(id)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Member not found"));
 
-        member.setStatus(status.toUpperCase());
+        String newStatus =
+                status == null
+                        ? ""
+                        : status.trim().toUpperCase();
 
-        return memberRepo.save(member);
+        if (newStatus.isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Member status is required"
+            );
+        }
+
+        member.setStatus(newStatus);
+
+        Member savedMember = memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                savedMember,
+                "Membership Status Updated",
+                "Your membership status has been updated to "
+                        + newStatus
+                        + ".",
+                "MEMBERSHIP",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
-    // Approve pending member
+
+    // =========================================================
+    // APPROVE PENDING MEMBER
+    // =========================================================
+
     public Member approveMember(Long id) {
 
         Member member = memberRepo.findById(id)
@@ -125,8 +211,10 @@ public class MemberService {
                         new IllegalArgumentException("Member not found"));
 
         if (!"PENDING".equalsIgnoreCase(member.getStatus())) {
+
             throw new IllegalArgumentException(
-                    "Only pending members can be approved");
+                    "Only pending members can be approved"
+            );
         }
 
         // Verification must be completed before approval
@@ -134,15 +222,36 @@ public class MemberService {
                 member.getVerificationStatus())) {
 
             throw new IllegalArgumentException(
-                    "Membership cannot be approved until the verification document is verified");
+                    "Membership cannot be approved until the verification document is verified"
+            );
         }
 
         member.setStatus("ACTIVE");
 
-        return memberRepo.save(member);
+        Member savedMember = memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                savedMember,
+                "Membership Approved",
+                "Your membership application has been approved. "
+                        + "Your account is now active.",
+                "MEMBERSHIP_APPROVED",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
-    // Reject pending member
+
+    // =========================================================
+    // REJECT PENDING MEMBER
+    // =========================================================
+
     public Member rejectMember(Long id) {
 
         Member member = memberRepo.findById(id)
@@ -150,16 +259,37 @@ public class MemberService {
                         new IllegalArgumentException("Member not found"));
 
         if (!"PENDING".equalsIgnoreCase(member.getStatus())) {
+
             throw new IllegalArgumentException(
-                    "Only pending members can be rejected");
+                    "Only pending members can be rejected"
+            );
         }
 
         member.setStatus("REJECTED");
 
-        return memberRepo.save(member);
+        Member savedMember = memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                savedMember,
+                "Membership Application Rejected",
+                "Your membership application has been rejected.",
+                "MEMBERSHIP_REJECTED",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
-    // Update member details
+
+    // =========================================================
+    // UPDATE MEMBER DETAILS
+    // =========================================================
+
     public Member updateMember(Long id, Member updatedMember) {
 
         Member member = memberRepo.findById(id)
@@ -168,33 +298,66 @@ public class MemberService {
 
         if (updatedMember.getFullName() == null ||
                 updatedMember.getFullName().trim().isEmpty()) {
+
             throw new IllegalArgumentException("Full name is required");
         }
 
         if (updatedMember.getEmail() == null ||
                 updatedMember.getEmail().trim().isEmpty()) {
-            throw new IllegalArgumentException("Email address is required");
+
+            throw new IllegalArgumentException(
+                    "Email address is required"
+            );
         }
 
         Optional<Member> existingMember =
-                memberRepo.findByEmail(updatedMember.getEmail().trim());
+                memberRepo.findByEmail(
+                        updatedMember.getEmail().trim()
+                );
 
         if (existingMember.isPresent() &&
                 !existingMember.get().getId().equals(id)) {
+
             throw new IllegalArgumentException(
-                    "A member with this email already exists");
+                    "A member with this email already exists"
+            );
         }
 
-        member.setFullName(updatedMember.getFullName().trim());
-        member.setEmail(updatedMember.getEmail().trim());
+        member.setFullName(
+                updatedMember.getFullName().trim()
+        );
+
+        member.setEmail(
+                updatedMember.getEmail().trim()
+        );
+
         member.setPhone(updatedMember.getPhone());
         member.setAddress(updatedMember.getAddress());
         member.setIdNumber(updatedMember.getIdNumber());
 
-        return memberRepo.save(member);
+        Member savedMember = memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                savedMember,
+                "Profile Updated",
+                "Your member profile has been updated by library staff.",
+                "MEMBERSHIP",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
-    // Delete / deactivate member
+
+    // =========================================================
+    // DELETE / DEACTIVATE MEMBER
+    // =========================================================
+
     public void deleteMember(Long id) {
 
         Member member = memberRepo.findById(id)
@@ -202,18 +365,34 @@ public class MemberService {
                         new IllegalArgumentException("Member not found"));
 
         if ("INACTIVE".equalsIgnoreCase(member.getStatus())) {
+
             throw new IllegalArgumentException(
-                    "Member is already inactive");
+                    "Member is already inactive"
+            );
         }
 
         member.setStatus("INACTIVE");
 
         memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                member,
+                "Membership Deactivated",
+                "Your library membership has been deactivated by library staff.",
+                "MEMBERSHIP",
+                "MEMBERSHIP",
+                member.getId()
+        );
     }
 
+
     // =========================================================
-// MEMBERSHIP RENEWAL
-// =========================================================
+    // MEMBERSHIP RENEWAL
+    // =========================================================
 
     public Member renewMembership(Long id) {
 
@@ -222,23 +401,29 @@ public class MemberService {
                         new IllegalArgumentException("Member not found"));
 
         if (member.getExpiryDate() == null) {
+
             throw new IllegalArgumentException(
-                    "Membership expiry date is not available");
+                    "Membership expiry date is not available"
+            );
         }
 
         LocalDate today = LocalDate.now();
 
         // Membership must be expired before renewal
         if (!member.getExpiryDate().isBefore(today)) {
+
             throw new IllegalArgumentException(
-                    "Membership has not expired yet");
+                    "Membership has not expired yet"
+            );
         }
 
         // Store previous expiry date before updating
-        LocalDate previousExpiryDate = member.getExpiryDate();
+        LocalDate previousExpiryDate =
+                member.getExpiryDate();
 
         // Renew for 12 months
-        LocalDate newExpiryDate = today.plusMonths(12);
+        LocalDate newExpiryDate =
+                today.plusMonths(12);
 
         member.setExpiryDate(newExpiryDate);
 
@@ -255,15 +440,51 @@ public class MemberService {
 
         renewalHistoryRepo.save(history);
 
-        return memberRepo.save(member);
+        Member savedMember =
+                memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                savedMember,
+                "Membership Renewed",
+                "Your membership has been renewed successfully. "
+                        + "New expiry date: "
+                        + newExpiryDate
+                        + ".",
+                "MEMBERSHIP",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        // =====================================================
+        // ADMIN NOTIFICATION
+        // =====================================================
+
+        notificationService.createAdminNotification(
+                "Membership Renewed",
+                "Member "
+                        + savedMember.getFullName()
+                        + " has renewed their membership.",
+                "MEMBERSHIP",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
+
+
     // =========================================================
     // DOCUMENT VERIFICATION
     // =========================================================
 
     public Member updateVerificationStatus(
             Long id,
-            String verificationStatus) {
+            String verificationStatus,
+            String rejectionReason) {
 
         Member member = memberRepo.findById(id)
                 .orElseThrow(() ->
@@ -273,34 +494,112 @@ public class MemberService {
                 member.getVerificationDocument().trim().isEmpty()) {
 
             throw new IllegalArgumentException(
-                    "No verification document has been uploaded");
+                    "No verification document has been uploaded"
+            );
         }
 
-        String newStatus = verificationStatus.trim().toUpperCase();
+        if (verificationStatus == null ||
+                verificationStatus.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Verification status is required"
+            );
+        }
+
+        String newStatus =
+                verificationStatus.trim().toUpperCase();
 
         if (!newStatus.equals("VERIFIED") &&
                 !newStatus.equals("REJECTED") &&
                 !newStatus.equals("PENDING")) {
 
             throw new IllegalArgumentException(
-                    "Invalid verification status");
+                    "Invalid verification status"
+            );
+        }
+
+        String cleanReason =
+                rejectionReason == null
+                        ? ""
+                        : rejectionReason.trim();
+
+        // =====================================================
+        // REJECTION REASON REQUIRED
+        // =====================================================
+
+        if ("REJECTED".equals(newStatus) &&
+                cleanReason.isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "A rejection reason is required"
+            );
         }
 
         member.setVerificationStatus(newStatus);
 
-        return memberRepo.save(member);
+        Member savedMember =
+                memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        String title;
+        String message;
+        String notificationType;
+
+        if ("VERIFIED".equals(newStatus)) {
+
+            title = "Verification Approved";
+
+            message =
+                    "Your verification document has been verified successfully.";
+
+            notificationType = "MEMBERSHIP_VERIFICATION_APPROVED";
+
+        } else if ("REJECTED".equals(newStatus)) {
+
+            title = "Verification Rejected";
+
+            message =
+                    "Your verification document has been rejected. "
+                            + "Reason: "
+                            + cleanReason;
+
+            notificationType = "MEMBERSHIP_VERIFICATION_REJECTED";
+
+        } else {
+
+            title = "Verification Status Updated";
+
+            message =
+                    "Your verification status has been updated to PENDING.";
+
+            notificationType = "MEMBERSHIP";
+        }
+
+        notificationService.createMemberNotification(
+                savedMember,
+                title,
+                message,
+                notificationType,
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
+
     // =========================================================
-// REQUEST MEMBERSHIP TYPE CHANGE
-// =========================================================
+    // REQUEST MEMBERSHIP TYPE CHANGE
+    // =========================================================
 
     public MembershipTypeChangeRequest requestMembershipTypeChange(
             Long memberId,
             String requestedMembershipType,
             String reason) {
 
-        // Find member
         Member member = memberRepo.findById(memberId)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
@@ -310,6 +609,7 @@ public class MemberService {
 
         // Only active members can request a membership type change
         if (!"ACTIVE".equalsIgnoreCase(member.getStatus())) {
+
             throw new IllegalArgumentException(
                     "Only active members can request a membership type change."
             );
@@ -360,6 +660,7 @@ public class MemberService {
                         );
 
         if (hasPendingRequest) {
+
             throw new IllegalArgumentException(
                     "You already have a pending membership type change request."
             );
@@ -380,7 +681,9 @@ public class MemberService {
         );
 
         request.setReason(
-                reason == null ? "" : reason.trim()
+                reason == null
+                        ? ""
+                        : reason.trim()
         );
 
         request.setStatus("PENDING");
@@ -389,12 +692,34 @@ public class MemberService {
                 java.time.LocalDateTime.now()
         );
 
-        return membershipTypeChangeRequestRepository.save(request);
+        MembershipTypeChangeRequest savedRequest =
+                membershipTypeChangeRequestRepository.save(request);
+
+        // =====================================================
+        // ADMIN NOTIFICATION
+        // =====================================================
+
+        notificationService.createAdminNotification(
+                "Membership Type Change Request",
+                "Member "
+                        + member.getFullName()
+                        + " requested a membership type change from "
+                        + member.getMembershipType()
+                        + " to "
+                        + requestedMembershipType
+                        + ".",
+                "MEMBERSHIP_TYPE_CHANGE",
+                "MEMBERSHIP",
+                savedRequest.getId()
+        );
+
+        return savedRequest;
     }
 
+
     // =========================================================
-// APPROVE MEMBERSHIP TYPE CHANGE
-// =========================================================
+    // APPROVE MEMBERSHIP TYPE CHANGE
+    // =========================================================
 
     public Member approveMembershipTypeChange(Long requestId) {
 
@@ -409,18 +734,20 @@ public class MemberService {
 
         // Request must be pending
         if (!"PENDING".equalsIgnoreCase(request.getStatus())) {
+
             throw new IllegalArgumentException(
                     "Only pending membership type change requests can be approved"
             );
         }
 
         // Find member
-        Member member = memberRepo.findById(request.getMemberId())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Member not found"
-                        )
-                );
+        Member member =
+                memberRepo.findById(request.getMemberId())
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Member not found"
+                                )
+                        );
 
         // Make sure current membership type has not changed
         if (!request.getCurrentMembershipType()
@@ -471,15 +798,35 @@ public class MemberService {
 
         membershipTypeChangeRequestRepository.save(request);
 
-        return memberRepo.save(member);
+        Member savedMember =
+                memberRepo.save(member);
+
+        // =====================================================
+        // MEMBER NOTIFICATION
+        // =====================================================
+
+        notificationService.createMemberNotification(
+                savedMember,
+                "Membership Type Change Approved",
+                "Your membership type has been changed to "
+                        + newMembershipType
+                        + ".",
+                "MEMBERSHIP_TYPE_APPROVED",
+                "MEMBERSHIP",
+                savedMember.getId()
+        );
+
+        return savedMember;
     }
 
+
     // =========================================================
-// REJECT MEMBERSHIP TYPE CHANGE
-// =========================================================
+    // REJECT MEMBERSHIP TYPE CHANGE
+    // =========================================================
 
     public MembershipTypeChangeRequest rejectMembershipTypeChange(
-            Long requestId) {
+            Long requestId,
+            String rejectionReason) {
 
         MembershipTypeChangeRequest request =
                 membershipTypeChangeRequestRepository
@@ -492,8 +839,22 @@ public class MemberService {
 
         // Request must be pending
         if (!"PENDING".equalsIgnoreCase(request.getStatus())) {
+
             throw new IllegalArgumentException(
                     "Only pending membership type change requests can be rejected"
+            );
+        }
+
+        String cleanReason =
+                rejectionReason == null
+                        ? ""
+                        : rejectionReason.trim();
+
+        // Rejection reason is required
+        if (cleanReason.isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "A rejection reason is required"
             );
         }
 
@@ -503,6 +864,47 @@ public class MemberService {
                 java.time.LocalDateTime.now()
         );
 
-        return membershipTypeChangeRequestRepository.save(request);
+        MembershipTypeChangeRequest savedRequest =
+                membershipTypeChangeRequestRepository.save(request);
+
+        Member member =
+                memberRepo.findById(request.getMemberId())
+                        .orElse(null);
+
+        if (member != null) {
+
+            // =================================================
+            // MEMBER NOTIFICATION WITH REJECTION REASON
+            // =================================================
+
+            notificationService.createMemberNotification(
+                    member,
+                    "Membership Type Change Rejected",
+                    "Your request to change membership type has been rejected. "
+                            + "Reason: "
+                            + cleanReason,
+                    "MEMBERSHIP_TYPE_REJECTED",
+                    "MEMBERSHIP",
+                    member.getId()
+            );
+        }
+
+        return savedRequest;
     }
-}
+
+        // =========================================================
+        // VERIFICATION DOCUMENT UPLOADED
+        // =========================================================
+
+        public void notifyVerificationDocumentUploaded (Member member){
+
+            notificationService.createAdminNotification(
+                    "Verification Document Uploaded",
+                    "Member " + member.getFullName()
+                            + " has uploaded a new verification document for review.",
+                    "MEMBERSHIP_VERIFICATION",
+                    "MEMBERSHIP",
+                    member.getId()
+            );
+        }
+    }
