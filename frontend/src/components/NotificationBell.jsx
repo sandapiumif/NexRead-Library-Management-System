@@ -157,6 +157,9 @@ export default function NotificationBell({
       case 'BORROWING_REJECTED':
         return '❌';
 
+      case 'REFUND':
+        return '💸';
+
       case 'BORROWING_RETURNED':
       case 'BORROWING_UPDATED':
       case 'BORROWING_CANCELLED':

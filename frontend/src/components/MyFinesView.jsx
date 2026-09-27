@@ -6,6 +6,7 @@ export default function MyFinesView({
   fines,
   onOpenPaymentModal,
   onOpenReceiptModal,
+  onOpenInvoice,
 }) {
   const memberFines = fines.filter((f) => f.member?.id === activeMember?.id);
   const pendingFines = memberFines.filter((f) => f.status === 'PENDING');
@@ -130,14 +131,23 @@ export default function MyFinesView({
                       >
                         Pay Online
                       </button>
-                    ) : (
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => onOpenReceiptModal(f)}
-                      >
-                        View Receipt
-                      </button>
-                    )}
+                   ) : (
+                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                       <button
+                         className="btn btn-secondary btn-sm"
+                         onClick={() => onOpenReceiptModal(f)}
+                       >
+                         View Receipt
+                       </button>
+
+                       <button
+                         className="btn btn-primary btn-sm"
+                         onClick={() => onOpenInvoice(f)}
+                       >
+                         View Invoice
+                       </button>
+                     </div>
+                   )}
                   </td>
                 </tr>
               ))

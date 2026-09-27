@@ -110,6 +110,7 @@ export default function App() {
   const [reservations, setReservations] = useState([]);
   const [fines, setFines] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -117,6 +118,7 @@ export default function App() {
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [activeFineForPay, setActiveFineForPay] = useState(null);
   const [activeFineForReceipt, setActiveFineForReceipt] = useState(null);
+  const [activeInvoice, setActiveInvoice] = useState(null);
 
   // ─────────────────────────────────────────────────────────────────────
   // PRELOADER
@@ -154,86 +156,160 @@ export default function App() {
   // FETCH ALL DATA
   // ─────────────────────────────────────────────────────────────────────
 
-  const fetchData = async () => {
-    try {
+   const fetchData = async () => {
+     try {
+       setLoading(true);
 
-      setLoading(true);
+       const fetchJson = async (url, fallback = []) => {
+         try {
+           const response = await fetch(url);
 
-      const [
-        statsRes,
-        booksRes,
-        membersRes,
-        borrowingsRes,
-        reservationsRes,
-        finesRes,
-        requestsRes,
-        borrowingRequestsRes,
-      ] = await Promise.all([
+           if (!response.ok) {
+             console.error(
+               `API error ${response.status}: ${url}`
+             );
+             return fallback;
+           }
 
-        fetch(
-          `${API_BASE}/dashboard/stats`
-        ).then((r) => r.json()),
+           return await response.json();
 
-        fetch(
-          `${API_BASE}/books`
-        ).then((r) => r.json()),
+         } catch (error) {
+           console.error(
+             `Failed to fetch ${url}:`,
+             error
+           );
 
-        fetch(
-          `${API_BASE}/members`
-        ).then((r) => r.json()),
+           return fallback;
+         }
+       };
 
-        fetch(
-          `${API_BASE}/borrowings`
-        ).then((r) => r.json()),
+       const [
+         statsRes,
+         booksRes,
+         membersRes,
+         borrowingsRes,
+         reservationsRes,
+         finesRes,
+         requestsRes,
+         borrowingRequestsRes,
+         refundsRes,
+       ] = await Promise.all([
 
-        fetch(
-          `${API_BASE}/reservations`
-        ).then((r) => r.json()),
+         fetchJson(
+           `${API_BASE}/dashboard/stats`,
+           null
+         ),
 
-        fetch(
-          `${API_BASE}/fines`
-        ).then((r) => r.json()),
+         fetchJson(
+           `${API_BASE}/books`,
+           []
+         ),
 
-        fetch(
-          `${API_BASE}/requests`
-        ).then((r) => r.json()),
+         fetchJson(
+           `${API_BASE}/members`,
+           []
+         ),
 
-        fetch(
-          `${API_BASE}/borrowing-requests`
-        ).then((r) => r.json()),
-      ]);
+         fetchJson(
+           `${API_BASE}/borrowings`,
+           []
+         ),
 
-      setStats(statsRes);
-      setBooks(booksRes);
-      setMembers(membersRes);
-      setBorrowings(borrowingsRes);
-      setReservations(reservationsRes);
-      setFines(finesRes);
-      setRequests(requestsRes);
+         fetchJson(
+           `${API_BASE}/reservations`,
+           []
+         ),
 
-      setBorrowingRequests(
-        Array.isArray(borrowingRequestsRes)
-          ? borrowingRequestsRes
-          : []
-      );
+         fetchJson(
+           `${API_BASE}/fines`,
+           []
+         ),
 
-    } catch (err) {
+         fetchJson(
+           `${API_BASE}/requests`,
+           []
+         ),
 
-      console.error(
-        'API fetch error:',
-        err
-      );
+         fetchJson(
+           `${API_BASE}/borrowing-requests`,
+           []
+         ),
 
-    } finally {
+         fetchJson(
+           `${API_BASE}/refunds`,
+           []
+         ),
 
-      setLoading(false);
+       ]);
 
-    }
-  };
+       // Update application data
+       setStats(statsRes);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+       setBooks(
+         Array.isArray(booksRes)
+           ? booksRes
+           : []
+       );
+
+       setMembers(
+         Array.isArray(membersRes)
+           ? membersRes
+           : []
+       );
+
+       setBorrowings(
+         Array.isArray(borrowingsRes)
+           ? borrowingsRes
+           : []
+       );
+
+       setReservations(
+         Array.isArray(reservationsRes)
+           ? reservationsRes
+           : []
+       );
+
+       setFines(
+         Array.isArray(finesRes)
+           ? finesRes
+           : []
+       );
+
+       setRequests(
+         Array.isArray(requestsRes)
+           ? requestsRes
+           : []
+       );
+
+       setBorrowingRequests(
+         Array.isArray(borrowingRequestsRes)
+           ? borrowingRequestsRes
+           : []
+       );
+
+       setRefunds(
+         Array.isArray(refundsRes)
+           ? refundsRes
+           : []
+       );
+
+     } catch (err) {
+
+       console.error(
+         'API fetch error:',
+         err
+       );
+
+     } finally {
+
+       setLoading(false);
+
+     }
+   };
+
+      useEffect(() => {
+        fetchData();
+      }, []);
 
   // ─────────────────────────────────────────────────────────────────────
   // UPDATE ACTIVE MEMBER AFTER DATA REFRESH
@@ -1297,6 +1373,130 @@ const handleRejectMemberDocument =
       return data;
     };
 
+
+  // ─────────────────────────────────────────────────────────────────────
+  // GENERATE / GET INVOICE
+  // ─────────────────────────────────────────────────────────────────────
+
+  const handleOpenInvoice = async (fine) => {
+    try {
+      // First try to get an existing invoice
+      const existingRes = await fetch(
+        `${API_BASE}/invoices/fine/${fine.id}`
+      );
+
+      if (existingRes.ok) {
+        const invoice = await existingRes.json();
+        setActiveInvoice({
+          ...invoice,
+          fine: fine,
+        });
+        return;
+      }
+
+      // If invoice does not exist, generate it using the fine code
+      const generateRes = await fetch(
+        `${API_BASE}/invoices/generate-by-code/${encodeURIComponent(
+          fine.fineCode
+        )}`,
+        {
+          method: 'POST',
+        }
+      );
+
+      const data = await generateRes.json();
+
+      if (!generateRes.ok) {
+        throw new Error(
+          data.error || 'Failed to generate invoice'
+        );
+      }
+
+     setActiveInvoice({
+       ...data,
+       fine: fine,
+     });
+    } catch (err) {
+      console.error('Invoice error:', err);
+      alert(err.message || 'Failed to open invoice');
+    }
+  };
+
+// ─────────────────────────────────────────────────────────────────────
+// PROCESS REFUND
+// ─────────────────────────────────────────────────────────────────────
+
+const handleProcessRefund = async (fine) => {
+  try {
+    // Check whether a refund already exists
+    const existingRes = await fetch(
+      `${API_BASE}/refunds/fine/${fine.id}`
+    );
+
+    if (existingRes.ok) {
+      const existingRefund = await existingRes.json();
+
+      alert(
+        `A refund has already been processed for this fine.\n\n` +
+        `Reference: ${existingRefund.refundReference}\n` +
+        `Amount: LKR ${Number(existingRefund.amount || 0).toFixed(2)}\n` +
+        `Status: ${existingRefund.status}`
+      );
+
+      return;
+    }
+
+    const reason = window.prompt(
+      `Enter refund reason for ${fine.fineCode}:`
+    );
+
+    if (reason === null) {
+      return;
+    }
+
+    if (!reason.trim()) {
+      alert('Refund reason is required.');
+      return;
+    }
+
+    const res = await fetch(
+      `${API_BASE}/refunds/process/${fine.id}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: reason.trim(),
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        data.error || 'Failed to process refund'
+      );
+    }
+
+    alert(
+      `Refund processed successfully!\n\n` +
+      `Reference: ${data.refundReference}\n` +
+      `Amount: LKR ${Number(data.amount || 0).toFixed(2)}\n` +
+      `Status: ${data.status}`
+    );
+
+    await fetchData();
+
+    return data;
+
+  } catch (err) {
+    console.error('Refund error:', err);
+    alert(err.message || 'Failed to process refund');
+  }
+};
+
   // ─────────────────────────────────────────────────────────────────────
   // UPDATE FINE
   // ─────────────────────────────────────────────────────────────────────
@@ -1864,17 +2064,13 @@ const handleRejectMemberDocument =
               {activeView === 'fines' && (
 
                 <FinesPayment
-                  fines={
-                    fines
-                  }
+                  fines={fines}
+                  members={members}
+                  refunds={refunds}
 
-                  members={
-                    members
-                  }
 
-                  onOpenPaymentModal={(
-                    fine
-                  ) =>
+
+                  onOpenPaymentModal={ (fine) =>
                     setActiveFineForPay(
                       fine
                     )
@@ -1883,9 +2079,12 @@ const handleRejectMemberDocument =
                   onOpenReceiptModal={(
                     fine
                   ) =>
-                    setActiveFineForReceipt(
-                      fine
-                    )
+                    setActiveFineForReceipt(fine)
+                  }
+
+
+                  onProcessRefund={
+                    handleProcessRefund
                   }
 
                   onUpdateFine={
@@ -2172,8 +2371,11 @@ const handleRejectMemberDocument =
                       fine
                     )
                   }
-                />
 
+                 onOpenInvoice={
+                     handleOpenInvoice
+                     }
+                 />
               )}
 
               {/* Submit Book Request */}
@@ -2290,6 +2492,7 @@ const handleRejectMemberDocument =
         }
       />
 
+
       {/* Add Book Modal */}
 
       <AddBookModal
@@ -2326,22 +2529,223 @@ const handleRejectMemberDocument =
         }
       />
 
-      {/* Digital Receipt Modal */}
+            {/* Digital Receipt Modal */}
 
-      <ReceiptModal
-        isOpen={
-          !!activeFineForReceipt
-        }
+            <ReceiptModal
+              isOpen={!!activeFineForReceipt}
+              fine={activeFineForReceipt}
+              onClose={() => setActiveFineForReceipt(null)}
+            />
 
-        fine={
-          activeFineForReceipt
-        }
+            {/* Invoice Modal */}
 
-        onClose={() =>
-          setActiveFineForReceipt(null)
-        }
-      />
+            {activeInvoice && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(0, 0, 0, 0.55)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '620px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    padding: '32px',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '24px',
+                    }}
+                  >
+                    <div>
+                      <h2 style={{ margin: 0 }}>
+                        Invoice
+                      </h2>
 
-    </div>
-  );
-}
+                      <div
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.85rem',
+                          marginTop: '4px',
+                        }}
+                      >
+                        {activeInvoice.invoiceNumber}
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() =>
+                        setActiveInvoice(null)
+                      }
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      padding: '24px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '1.4rem',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      NexRead
+                    </div>
+
+                    <div
+                      style={{
+                        color: 'var(--text-muted)',
+                        marginBottom: '24px',
+                      }}
+                    >
+                      Library Management System
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '18px',
+                        marginBottom: '24px',
+                      }}
+                    >
+                      <div>
+                        <div className="text-muted">
+                          Invoice Number
+                        </div>
+
+                        <strong>
+                          {activeInvoice.invoiceNumber}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <div className="text-muted">
+                          Invoice Date
+                        </div>
+
+                        <strong>
+                          {new Date(
+                            activeInvoice.invoiceDate
+                          ).toLocaleDateString()}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <div className="text-muted">
+                          Fine Reference
+                        </div>
+
+                        <strong>
+                          {activeInvoice.fine?.fineCode || '—'}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <div className="text-muted">
+                          Status
+                        </div>
+
+                        <span className="status-pill status-paid">
+                          {activeInvoice.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        borderTop:
+                          '1px solid var(--border-color)',
+                        paddingTop: '20px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: 'var(--text-muted)',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        Description
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        {activeInvoice.description}
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '1.2rem',
+                          fontWeight: 800,
+                        }}
+                      >
+                        <span>Total</span>
+
+                        <span>
+                          LKR{' '}
+                          {Number(
+                            activeInvoice.amount || 0
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      gap: '10px',
+                      marginTop: '20px',
+                    }}
+                  >
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() =>
+                        window.print()
+                      }
+                    >
+                      Print / Save PDF
+                    </button>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={() =>
+                        setActiveInvoice(null)
+                      }
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        );
+  }
