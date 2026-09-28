@@ -110,34 +110,67 @@ export default function TopHeader({
         =================================================== */}
 
         <button
-          className="icon-btn"
+          type="button"
           title="Help & Documentation"
+          aria-label="Help & Documentation"
           onClick={() => {
             setShowHelp(true);
             setShowNotifications(false);
             setShowProfileMenu(false);
           }}
+          style={{
+            width: '42px',
+            height: '42px',
+            minWidth: '42px',
+            padding: 0,
+            borderRadius: '50%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            boxSizing: 'border-box',
+            transition: 'all 0.18s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--primary)';
+            e.currentTarget.style.borderColor = 'var(--border-focus)';
+            e.currentTarget.style.background = 'var(--bg-hover)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(91, 75, 240, 0.12)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--text-muted)';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+            e.currentTarget.style.background = 'var(--bg-surface)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.outline = 'none';
+            e.currentTarget.style.borderColor = 'var(--primary)';
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(91, 75, 240, 0.14)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
           <svg
-            width="18"
-            height="18"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+            aria-hidden="true"
           >
-            <circle cx="12" cy="12" r="10" />
-
             <path
-              d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
+              d="M9.2 9.2a3 3 0 1 1 5.7 1.45c-.45.95-1.55 1.35-2.25 2.1-.48.52-.65 1.02-.65 1.75"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-
-            <line
-              x1="12"
-              y1="17"
-              x2="12.01"
-              y2="17"
-            />
+            <circle cx="12" cy="17.6" r="1" fill="currentColor" />
           </svg>
         </button>
 

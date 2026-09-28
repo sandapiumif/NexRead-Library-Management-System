@@ -2193,10 +2193,9 @@ const handleProcessRefund = async (fine) => {
 
 
 
-              {/* Membership Payment Records */}
-
-              <section
-                style={{
+              {activeView === 'fines' && (
+<section
+                              style={{
                   marginTop: '24px',
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
@@ -2510,6 +2509,7 @@ const handleProcessRefund = async (fine) => {
                   </table>
                 </div>
               </section>
+              )}
 
 
 

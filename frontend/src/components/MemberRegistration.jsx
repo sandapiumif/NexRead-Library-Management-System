@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { UsersIcon } from './Icons';
 
 export default function MemberRegistration({
@@ -25,6 +25,56 @@ export default function MemberRegistration({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // UI-only section state. No business logic/API behavior is changed.
+  const [sectionOpen, setSectionOpen] = useState(true);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('members');
+
+  useEffect(() => {
+    const handleSectionChange = (event) => {
+      const section = event.detail;
+      setActiveSection(section);
+      setRegistrationOpen(section === 'registration');
+      setSectionOpen(section === 'members');
+    };
+
+    window.addEventListener(
+      'membership-section-change',
+      handleSectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        'membership-section-change',
+        handleSectionChange
+      );
+    };
+  }, []);
+
+  const openMembershipSection = (section) => {
+    window.dispatchEvent(
+      new CustomEvent('membership-section-change', {
+        detail: section,
+      })
+    );
+
+    const targetId = {
+      registration: 'membership-section-registration',
+      members: 'membership-section-members',
+      types: 'membership-section-types',
+      requests: 'membership-section-requests',
+    }[section];
+
+    window.setTimeout(() => {
+      document
+        .getElementById(targetId)
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+    }, 120);
+  };
 
     // ==============================
     // MEMBERS DIRECTORY
@@ -382,6 +432,188 @@ const handleRejectDocument = async (id) => {
         </div>
       </div>
 
+      {/* MEMBERSHIP WORKSPACE NAVIGATION - UI ONLY */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+      >
+        {[
+          {
+            id: 'members',
+            icon: '👥',
+            title: 'Members Directory',
+            description:
+              'Register, search and manage library members.',
+            count: `${members.length} members`,
+          },
+          {
+            id: 'types',
+            icon: '⚙',
+            title: 'Membership Categories',
+            description:
+              'Manage limits, validity periods and fees.',
+            count: 'Configure categories',
+          },
+          {
+            id: 'requests',
+            icon: '↔',
+            title: 'Membership Change Requests',
+            description:
+              'Review member membership-type change requests.',
+            count: 'Review requests',
+          },
+        ].map((item) => {
+          const active = item.id === activeSection;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() =>
+                openMembershipSection(item.id)
+              }
+              style={{
+                appearance: 'none',
+                border: active
+                  ? '1px solid var(--primary)'
+                  : '1px solid var(--border-color)',
+                background: active
+                  ? 'var(--primary-subtle)'
+                  : 'var(--bg-surface)',
+                borderRadius: '14px',
+                padding: '16px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                boxShadow: active
+                  ? '0 8px 20px rgba(79, 70, 229, 0.08)'
+                  : 'none',
+                transition:
+                  'all 0.2s ease',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent:
+                    'space-between',
+                  gap: '12px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '11px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: active
+                      ? 'var(--primary)'
+                      : 'var(--bg-secondary)',
+                    color: active
+                      ? '#fff'
+                      : 'var(--primary)',
+                    fontSize: '17px',
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.icon}
+                </span>
+
+                <span
+                  style={{
+                    fontSize: '18px',
+                    color: 'var(--text-muted)',
+                    lineHeight: 1,
+                  }}
+                >
+                  →
+                </span>
+              </div>
+
+              <div
+                style={{
+                  marginTop: '12px',
+                  fontWeight: 750,
+                  color: 'var(--text-main)',
+                }}
+              >
+                {item.title}
+              </div>
+
+              <div
+                style={{
+                  marginTop: '4px',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.76rem',
+                  lineHeight: 1.45,
+                }}
+              >
+                {item.description}
+              </div>
+
+              <div
+                style={{
+                  marginTop: '9px',
+                  color: 'var(--primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 750,
+                }}
+              >
+                {item.count}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* REGISTRATION - UI ONLY */}
+      <div
+        id="membership-section-registration"
+        className="card"
+        style={{
+          marginBottom: '20px',
+          overflow: 'hidden',
+          padding: 0,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => openMembershipSection('registration')}
+          style={{
+            width: '100%',
+            border: 'none',
+            background: 'transparent',
+            padding: '18px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '1rem' }}>
+              ➕ Register New Library Member
+            </div>
+            <div style={{ marginTop: '4px', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+              Add a new member and preview their digital membership pass.
+            </div>
+          </div>
+          <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+            {registrationOpen ? 'Close ↑' : 'Open →'}
+          </span>
+        </button>
+
+        {registrationOpen && (
+          <div style={{ padding: '0 20px 20px' }}>
       {/* Registration Layout: Form on Left, Live ID Card Preview on Right */}
       <div
         style={{
@@ -813,6 +1045,14 @@ const handleRejectDocument = async (id) => {
 
         </div>
       </div>
+
+          </div>
+        )}
+      </div>
+
+      <div id="membership-section-members">
+        {sectionOpen && (
+          <div className="animate-fade-in">
 
       {/* Existing Members Table */}
       <div
@@ -1258,7 +1498,13 @@ const handleRejectDocument = async (id) => {
             MEMBER DETAILS MODAL
         ============================== */}
 
-        {selectedMember && (
+          </div>
+        )}
+      </div>
+
+
+      {/* Selected member modal remains unchanged. */}
+      {selectedMember && (
           <div
             style={{
               position: 'fixed',

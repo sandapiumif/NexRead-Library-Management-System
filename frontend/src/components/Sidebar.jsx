@@ -12,6 +12,7 @@ export default function Sidebar({
   onLogout,
 }) {
   const [adminActivityCounts, setAdminActivityCounts] = useState({});
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     if (userRole !== 'ADMIN') {
@@ -70,7 +71,7 @@ export default function Sidebar({
   );
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Brand Header */}
       <div className="sidebar-brand">
         <div className="brand-icon-wrapper">
@@ -81,13 +82,29 @@ export default function Sidebar({
             <line x1="9" y1="9" x2="15" y2="9"></line>
           </svg>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+        <div className="sidebar-brand-copy" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
           <span className="brand-name">NexRead</span>
           <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.04em' }}>
             Central Library
           </span>
         </div>
         <span className="brand-badge">{userRole === 'ADMIN' ? 'ADMIN' : 'MEMBER'}</span>
+
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            {isCollapsed ? (
+              <polyline points="9 18 15 12 9 6"></polyline>
+            ) : (
+              <polyline points="15 18 9 12 15 6"></polyline>
+            )}
+          </svg>
+        </button>
       </div>
 
       {/* Navigation Links */}
@@ -97,6 +114,7 @@ export default function Sidebar({
             <div className="sidebar-section-label">Discovery & General</div>
             <button
               className={`sidebar-nav-item ${activeView === 'landing' ? 'active' : ''}`}
+              title="Explore Landing"
               onClick={() => setActiveView('landing')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -108,6 +126,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'overview' ? 'active' : ''}`}
+              title="Dashboard"
               onClick={() => setActiveView('overview')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -121,6 +140,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'catalog' ? 'active' : ''}`}
+              title="Book Catalog"
               onClick={() => setActiveView('catalog')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -133,6 +153,7 @@ export default function Sidebar({
             <div className="sidebar-section-label">Operations & Management</div>
             <button
               className={`sidebar-nav-item ${activeView === 'borrowings' ? 'active' : ''}`}
+              title="Borrowing Desk"
               onClick={() => setActiveView('borrowings')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -146,6 +167,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'reservations' ? 'active' : ''}`}
+              title="Reservations Queue"
               onClick={() => setActiveView('reservations')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -158,6 +180,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'fines' ? 'active' : ''}`}
+              title="Fines & Revenue"
               onClick={() => setActiveView('fines')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -170,6 +193,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'requests' ? 'active' : ''}`}
+              title="Purchase Requests"
               onClick={() => setActiveView('requests')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -185,6 +209,7 @@ export default function Sidebar({
             <div className="sidebar-section-label">Management</div>
             <button
               className={`sidebar-nav-item ${activeView === 'members' ? 'active' : ''}`}
+              title="Members Directory"
               onClick={() => setActiveView('members')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -202,6 +227,7 @@ export default function Sidebar({
             <div className="sidebar-section-label">Discovery & Workspace</div>
             <button
               className={`sidebar-nav-item ${activeView === 'landing' ? 'active' : ''}`}
+              title="Explore Landing"
               onClick={() => setActiveView('landing')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -213,6 +239,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'user-dashboard' ? 'active' : ''}`}
+              title="My Dashboard"
               onClick={() => setActiveView('user-dashboard')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -224,6 +251,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'catalog' ? 'active' : ''}`}
+              title="Explore Catalog"
               onClick={() => setActiveView('catalog')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -236,6 +264,7 @@ export default function Sidebar({
             <div className="sidebar-section-label">My Circulation</div>
             <button
               className={`sidebar-nav-item ${activeView === 'my-loans' ? 'active' : ''}`}
+              title="Borrowed Books"
               onClick={() => setActiveView('my-loans')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -248,6 +277,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'borrowing-history' ? 'active' : ''}`}
+              title="Borrowing History"
               onClick={() => setActiveView('borrowing-history')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -259,6 +289,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'my-borrowing-requests' ? 'active' : ''}`}
+              title="Borrowing Requests"
               onClick={() => setActiveView('my-borrowing-requests')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -272,6 +303,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'my-reservations' ? 'active' : ''}`}
+              title="My Reservations"
               onClick={() => setActiveView('my-reservations')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -283,6 +315,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'my-fines' ? 'active' : ''}`}
+              title="My Fines & Dues"
               onClick={() => setActiveView('my-fines')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -295,6 +328,7 @@ export default function Sidebar({
             <div className="sidebar-section-label">Services</div>
             <button
               className={`sidebar-nav-item ${activeView === 'submit-request' ? 'active' : ''}`}
+              title="Request New Book"
               onClick={() => setActiveView('submit-request')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -307,6 +341,7 @@ export default function Sidebar({
 
             <button
               className={`sidebar-nav-item ${activeView === 'my-card' ? 'active' : ''}`}
+              title="Digital Member Pass"
               onClick={() => setActiveView('my-card')}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import BookEngagementPanel from './BookEngagementPanel';
 import BookRecommendations from './BookRecommendations';
 import { CodeIcon, BookIcon, DatabaseIcon, GlobeIcon, CpuIcon } from './Icons';
@@ -23,9 +23,49 @@ export default function BookCatalogSaaS({
   const [actionMessage, setActionMessage] = useState('');
   const [selectedBook, setSelectedBook] = useState(null);
   const [wishlistRefreshKey, setWishlistRefreshKey] = useState(0);
-  const [showArchived, setShowArchived] = useState(false);
+  const [activeSection, setActiveSection] = useState('active');
   const [archivedBooks, setArchivedBooks] = useState([]);
   const [archivedLoading, setArchivedLoading] = useState(false);
+
+  useEffect(() => {
+    const handleBookCatalogSectionChange = (event) => {
+      const section = event?.detail;
+
+      if (['active', 'archived', 'recommendations', 'wishlist'].includes(section)) {
+        setActiveSection(section);
+
+        if (section === 'archived') {
+          loadArchivedBooks();
+        }
+      }
+    };
+
+    window.addEventListener(
+      'book-catalog-section-change',
+      handleBookCatalogSectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        'book-catalog-section-change',
+        handleBookCatalogSectionChange
+      );
+    };
+  }, []);
+
+  const openCatalogSection = (section) => {
+    setActiveSection(section);
+
+    if (section === 'archived') {
+      loadArchivedBooks();
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('book-catalog-section-change', {
+        detail: section,
+      })
+    );
+  };
 
   // Load archived books
   const loadArchivedBooks = async () => {
@@ -338,26 +378,95 @@ export default function BookCatalogSaaS({
           </button>
         )}
 
-        {userRole !== 'MEMBER' && (
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              const next = !showArchived;
-
-              setShowArchived(next);
-
-              if (next) {
-                loadArchivedBooks();
-              }
-            }}
-          >
-            {showArchived
-              ? 'Back to Active Books'
-              : 'Archived Books'}
-          </button>
-        )}
 
       </div>
+
+      {/* Collection / Discovery Sections */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: userRole === 'MEMBER'
+            ? 'repeat(3, minmax(0, 1fr))'
+            : 'repeat(2, minmax(0, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
+        }}
+      >
+        {[
+          {
+            id: 'active',
+            icon: '📚',
+            title: 'Browse Catalog',
+            description: 'Search books, check availability, and request or reserve books.',
+          },
+          ...(userRole === 'MEMBER'
+            ? [
+                {
+                  id: 'recommendations',
+                  icon: '✨',
+                  title: 'Recommended for You',
+                  description: 'Discover books based on your borrowing interests.',
+                },
+                {
+                  id: 'wishlist',
+                  icon: '♡',
+                  title: 'My Wishlist',
+                  description: 'Quickly access books saved for future reading.',
+                },
+              ]
+            : [
+                {
+                  id: 'archived',
+                  icon: '🗃',
+                  title: 'Archived Books',
+                  description: 'View and restore books that have been archived.',
+                },
+              ]),
+        ].map((item) => {
+          const active = activeSection === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openCatalogSection(item.id)}
+              style={{
+                textAlign: 'left',
+                border: active
+                  ? '2px solid var(--primary)'
+                  : '1px solid var(--border-color)',
+                background: active
+                  ? 'var(--primary-light, rgba(91, 75, 240, 0.08))'
+                  : 'var(--card-bg)',
+                borderRadius: '16px',
+                padding: '18px 20px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                color: 'var(--text-main)',
+                boxShadow: active
+                  ? '0 8px 22px rgba(91, 75, 240, 0.10)'
+                  : 'var(--shadow-sm)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800 }}>
+                    {item.icon} {item.title}
+                  </div>
+                  <div style={{ marginTop: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                    {item.description}
+                  </div>
+                </div>
+                <span style={{ fontSize: '1.1rem', opacity: 0.7 }}>
+                  {active ? '⌃' : '›'}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeSection === 'active' && (
+        <>
 
       {actionMessage && (
         <div
@@ -555,8 +664,29 @@ export default function BookCatalogSaaS({
         </div>
       </div>
 
+        </>
+      )}
+
+      {userRole === 'MEMBER' && activeSection === 'recommendations' && (
+        <BookRecommendations
+          activeMember={activeMember}
+          onOpenBook={setSelectedBook}
+          wishlistRefreshKey={wishlistRefreshKey}
+          mode="recommendations"
+        />
+      )}
+
+      {userRole === 'MEMBER' && activeSection === 'wishlist' && (
+        <BookRecommendations
+          activeMember={activeMember}
+          onOpenBook={setSelectedBook}
+          wishlistRefreshKey={wishlistRefreshKey}
+          mode="wishlist"
+        />
+      )}
+
       {/* Archived Books View */}
-      {showArchived ? (
+      {activeSection === 'archived' ? (
 
         <div>
 
@@ -1209,19 +1339,6 @@ export default function BookCatalogSaaS({
             </div>
 
           )}
-
-          {userRole === 'MEMBER' &&
-            activeMember && (
-
-              <BookRecommendations
-                activeMember={activeMember}
-                onOpenBook={setSelectedBook}
-                wishlistRefreshKey={
-                  wishlistRefreshKey
-                }
-              />
-
-            )}
 
         </>
 

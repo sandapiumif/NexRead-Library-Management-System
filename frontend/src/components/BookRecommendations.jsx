@@ -6,6 +6,7 @@ export default function BookRecommendations({
   activeMember,
   onOpenBook,
   wishlistRefreshKey,
+  mode = 'all',
 }) {
 
   const [recommendations, setRecommendations] = useState([]);
@@ -81,37 +82,51 @@ export default function BookRecommendations({
     </div>
   );
 
-  return (
-    <div style={{ marginTop: 28, display: 'grid', gap: 24 }}>
-      <section>
-        <div style={{ marginBottom: 12 }}>
-          <h2 style={{ marginBottom: 4 }}>Recommended for You</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>
-            Recommendations are based on your borrowing categories.
-          </p>
-        </div>
-        {recommendations.length ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
-            {recommendations.map((book) => <BookMiniCard key={book.id} book={book} />)}
-          </div>
-        ) : (
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>No recommendations available yet.</div>
-        )}
-      </section>
+  const showRecommendations = mode === 'all' || mode === 'recommendations';
+  const showWishlist = mode === 'all' || mode === 'wishlist';
 
-      <section>
-        <div style={{ marginBottom: 12 }}>
-          <h2 style={{ marginBottom: 4 }}>My Wishlist</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>Books you saved for future reading.</p>
-        </div>
-        {wishlist.length ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
-            {wishlist.map((item) => <BookMiniCard key={item.id} book={item.book} wishlistItem />)}
+  return (
+    <div style={{ marginTop: 4, display: 'grid', gap: 24 }}>
+      {showRecommendations && (
+        <section
+          className="card"
+          style={{ padding: '22px' }}
+        >
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ marginBottom: 4 }}>Recommended for You</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>
+              Recommendations are based on your borrowing categories.
+            </p>
           </div>
-        ) : (
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>Your wishlist is empty.</div>
-        )}
-      </section>
+          {recommendations.length ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+              {recommendations.map((book) => <BookMiniCard key={book.id} book={book} />)}
+            </div>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>No recommendations available yet.</div>
+          )}
+        </section>
+      )}
+
+      {showWishlist && (
+        <section
+          className="card"
+          style={{ padding: '22px' }}
+        >
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ marginBottom: 4 }}>My Wishlist</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>Books you saved for future reading.</p>
+          </div>
+          {wishlist.length ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+              {wishlist.map((item) => <BookMiniCard key={item.id} book={item.book} wishlistItem />)}
+            </div>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.86rem' }}>Your wishlist is empty.</div>
+          )}
+        </section>
+      )}
     </div>
   );
+
 }

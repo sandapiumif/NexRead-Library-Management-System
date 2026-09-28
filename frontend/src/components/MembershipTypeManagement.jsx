@@ -17,6 +17,27 @@ export default function MembershipTypeManagement() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // UI-only section state. No business logic/API behavior is changed.
+  const [sectionOpen, setSectionOpen] = useState(false);
+
+  useEffect(() => {
+    const handleSectionChange = (event) => {
+      setSectionOpen(event.detail === 'types');
+    };
+
+    window.addEventListener(
+      'membership-section-change',
+      handleSectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        'membership-section-change',
+        handleSectionChange
+      );
+    };
+  }, []);
+
   const fetchTypes = async () => {
     try {
       setError('');
@@ -172,32 +193,138 @@ export default function MembershipTypeManagement() {
   };
 
   return (
-    <div className="animate-fade-in">
-
-      {/* =========================
-          SECTION HEADER
-      ========================== */}
-
-      <div className="section-header">
-        <div>
-
-          <h2 className="section-title">
-            Membership Type Management
-          </h2>
-
-          <p
+    <div
+      id="membership-section-types"
+      className="animate-fade-in"
+      style={{ marginTop: '14px' }}
+    >
+      {/* COLLAPSED / EXPANDED SECTION HEADER */}
+      <div
+        className="card"
+        style={{
+          overflow: 'hidden',
+          marginBottom: sectionOpen ? '16px' : '0',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(
+              new CustomEvent(
+                'membership-section-change',
+                {
+                  detail: sectionOpen
+                    ? 'members'
+                    : 'types',
+                }
+              )
+            );
+          }}
+          style={{
+            width: '100%',
+            border: 0,
+            background: 'transparent',
+            padding: '18px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
+        >
+          <span
             style={{
-              color: 'var(--text-secondary)',
-              fontSize: '0.88rem',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'var(--primary-subtle)',
+              color: 'var(--primary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+              flexShrink: 0,
             }}
           >
-            Manage membership categories, borrowing
-            limits, membership validity periods and
-            membership fees.
-          </p>
+            ⚙
+          </span>
 
-        </div>
+          <span style={{ flex: 1 }}>
+            <span
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '1rem',
+                fontWeight: 750,
+                color: 'var(--text-main)',
+              }}
+            >
+              Membership Categories
+            </span>
+
+            <span
+              style={{
+                display: 'block',
+                marginTop: '3px',
+                color: 'var(--text-muted)',
+                fontSize: '0.76rem',
+              }}
+            >
+              Configure borrowing limits, validity periods and fees.
+            </span>
+          </span>
+
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'var(--text-muted)',
+              fontSize: '0.76rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span>{types.length} categories</span>
+            <span
+              style={{
+                fontSize: '18px',
+                transform: sectionOpen
+                  ? 'rotate(180deg)'
+                  : 'rotate(0deg)',
+                transition:
+                  'transform 0.2s ease',
+              }}
+            >
+              ⌄
+            </span>
+          </span>
+        </button>
       </div>
+
+      {sectionOpen && (
+        <div className="animate-fade-in">
+
+          {/* SECTION CONTENT */}
+
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">
+                Membership Category Management
+              </h2>
+
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.88rem',
+                }}
+              >
+                Manage membership categories, borrowing
+                limits, membership validity periods and
+                membership fees.
+              </p>
+            </div>
+          </div>
 
       {/* =========================
           ALERTS
@@ -508,6 +635,8 @@ export default function MembershipTypeManagement() {
 
       </div>
 
+        </div>
+      )}
     </div>
   );
 }
