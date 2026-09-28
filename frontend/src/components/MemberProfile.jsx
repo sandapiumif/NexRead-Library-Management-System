@@ -24,6 +24,12 @@ function MemberProfile({ activeMember, onProfileUpdated }) {
   const [renewalHistory, setRenewalHistory] = useState([]);
   const [renewing, setRenewing] = useState(false);
   const [membershipTypeRequests, setMembershipTypeRequests] = useState([]);
+  const [membershipTypes, setMembershipTypes] = useState([]);
+  const [membershipPayments, setMembershipPayments] = useState([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('ONLINE_CARD');
+  const [creatingPayment, setCreatingPayment] = useState(false);
+  const [payingMembership, setPayingMembership] = useState(false);
+  const [activeMembershipPayment, setActiveMembershipPayment] = useState(null);
   const [requestedMembershipType, setRequestedMembershipType] = useState('');
   const [membershipTypeReason, setMembershipTypeReason] = useState('');
   const [requestingMembershipType, setRequestingMembershipType] = useState(false);
@@ -43,6 +49,8 @@ function MemberProfile({ activeMember, onProfileUpdated }) {
       fetchProfile();
       fetchRenewalHistory();
       fetchMembershipTypeRequests();
+      fetchMembershipTypes();
+      fetchMembershipPayments();
     }, [activeMember]);
 
 
@@ -198,6 +206,183 @@ const handleMembershipTypeChangeRequest = async () => {
         );
 
         setRenewalHistory([]);
+      }
+    };
+
+    const fetchMembershipTypes = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/membership-types`
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              'Failed to load membership types.'
+          );
+        }
+
+        setMembershipTypes(
+          Array.isArray(data) ? data : []
+        );
+      } catch (err) {
+        console.error(
+          'Failed to load membership types:',
+          err
+        );
+        setMembershipTypes([]);
+      }
+    };
+
+    const fetchMembershipPayments = async () => {
+      if (!activeMember?.id) return;
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/membership-payments/member/${activeMember.id}`
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              'Failed to load membership payments.'
+          );
+        }
+
+        setMembershipPayments(
+          Array.isArray(data) ? data : []
+        );
+      } catch (err) {
+        console.error(
+          'Failed to load membership payments:',
+          err
+        );
+
+        setMembershipPayments([]);
+      }
+    };
+
+    const getMembershipFee = () => {
+      if (!profile?.membershipType) {
+        return 0;
+      }
+
+      const membershipType =
+        membershipTypes.find(
+          (type) =>
+            type.typeName?.toUpperCase() ===
+            profile.membershipType?.toUpperCase()
+        );
+
+      return Number(
+        membershipType?.feeAmount || 0
+      );
+    };
+
+    const handleCreateMembershipPayment = async () => {
+      const amount = getMembershipFee();
+
+      if (amount <= 0) {
+        setError(
+          'Membership fee has not been configured for your membership type.'
+        );
+        return;
+      }
+
+      try {
+        setCreatingPayment(true);
+        setError('');
+        setSuccess('');
+
+        const res = await fetch(
+          `${API_BASE}/membership-payments`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              memberId: activeMember.id,
+              amount: amount,
+              paymentType: 'RENEWAL',
+            }),
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              'Failed to create membership payment.'
+          );
+        }
+
+        setActiveMembershipPayment(data);
+
+        setSuccess(
+          'Membership payment created successfully. Please complete the payment.'
+        );
+
+        await fetchMembershipPayments();
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setCreatingPayment(false);
+      }
+    };
+
+    const handlePayMembershipFee = async () => {
+      if (!activeMembershipPayment?.id) {
+        setError(
+          'Please create a membership payment first.'
+        );
+        return;
+      }
+
+      try {
+        setPayingMembership(true);
+        setError('');
+        setSuccess('');
+
+        const res = await fetch(
+          `${API_BASE}/membership-payments/${activeMembershipPayment.id}/pay`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              paymentMethod:
+                selectedPaymentMethod,
+            }),
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.error ||
+              'Failed to process membership payment.'
+          );
+        }
+
+        setActiveMembershipPayment(data);
+
+        setSuccess(
+          'Membership payment completed successfully.'
+        );
+
+        await fetchMembershipPayments();
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setPayingMembership(false);
       }
     };
 
@@ -920,6 +1105,407 @@ const handleMembershipTypeChangeRequest = async () => {
                    </div>
 
                  </div>
+
+                 {/* MEMBERSHIP PAYMENT */}
+
+                 <div
+                   style={{
+                     marginTop: '2rem',
+                     paddingTop: '1.5rem',
+                     borderTop: '1px solid var(--border-color)',
+                   }}
+                 >
+                   <div style={{ marginBottom: '1rem' }}>
+                     <h4
+                       style={{
+                         margin: 0,
+                         marginBottom: '0.25rem',
+                       }}
+                     >
+                       💳 Membership Fee Payment
+                     </h4>
+
+                     <p
+                       style={{
+                         margin: 0,
+                         color: 'var(--text-secondary)',
+                         fontSize: '0.85rem',
+                       }}
+                     >
+                       View your membership fee and complete your
+                       renewal payment.
+                     </p>
+                   </div>
+
+                   <div
+                     style={{
+                       display: 'grid',
+                       gridTemplateColumns:
+                         'repeat(auto-fit, minmax(180px, 1fr))',
+                       gap: '1rem',
+                       marginBottom: '1.25rem',
+                     }}
+                   >
+                     <div className="profile-info-item">
+                       <span>Membership Fee</span>
+
+                       <strong>
+                         LKR {getMembershipFee().toFixed(2)}
+                       </strong>
+                     </div>
+
+                     <div className="profile-info-item">
+                       <span>Payment Status</span>
+
+                       <strong>
+                         {activeMembershipPayment?.status ||
+                           membershipPayments[0]?.status ||
+                           'NOT PAID'}
+                       </strong>
+                     </div>
+                   </div>
+
+                   {/* Payment Form */}
+
+                   {activeMembershipPayment?.status !== 'PAID' && (
+                     <div
+                       style={{
+                         padding: '1.25rem',
+                         border: '1px solid var(--border-color)',
+                         borderRadius: 'var(--radius-md)',
+                         background: 'var(--bg-secondary)',
+                       }}
+                     >
+                       {!activeMembershipPayment ? (
+                         <>
+                           <div
+                             style={{
+                               marginBottom: '1rem',
+                               color: 'var(--text-secondary)',
+                               fontSize: '0.9rem',
+                             }}
+                           >
+                             Membership renewal fee:
+                             <strong
+                               style={{
+                                 marginLeft: '6px',
+                                 color: 'var(--text-primary)',
+                               }}
+                             >
+                               LKR {getMembershipFee().toFixed(2)}
+                             </strong>
+                           </div>
+
+                           <button
+                             type="button"
+                             className="profile-primary-btn"
+                             onClick={handleCreateMembershipPayment}
+                             disabled={
+                               creatingPayment ||
+                               getMembershipFee() <= 0
+                             }
+                           >
+                             {creatingPayment
+                               ? 'Creating Payment...'
+                               : '💳 Pay Membership Fee'}
+                           </button>
+                         </>
+                       ) : (
+                         <>
+                           <div
+                             style={{
+                               marginBottom: '1rem',
+                             }}
+                           >
+                             <strong>
+                               Payment Code:
+                             </strong>{' '}
+                             {activeMembershipPayment.paymentCode}
+                           </div>
+
+                           <div
+                             style={{
+                               marginBottom: '1rem',
+                               fontSize: '1.1rem',
+                               fontWeight: 700,
+                             }}
+                           >
+                             Amount: LKR{' '}
+                             {Number(
+                               activeMembershipPayment.amount || 0
+                             ).toFixed(2)}
+                           </div>
+
+                           <div
+                             className="profile-field"
+                             style={{
+                               marginBottom: '1rem',
+                             }}
+                           >
+                             <label>
+                               Payment Method
+                             </label>
+
+                             <select
+                               value={selectedPaymentMethod}
+                               onChange={(e) =>
+                                 setSelectedPaymentMethod(
+                                   e.target.value
+                                 )
+                               }
+                               disabled={payingMembership}
+                             >
+                               <option value="ONLINE_CARD">
+                                 Online Card
+                               </option>
+
+                               <option value="CASH">
+                                 Cash
+                               </option>
+
+                               <option value="BANK_TRANSFER">
+                                 Bank Transfer
+                               </option>
+                             </select>
+                           </div>
+
+                           <button
+                             type="button"
+                             className="profile-primary-btn"
+                             onClick={handlePayMembershipFee}
+                             disabled={payingMembership}
+                           >
+                             {payingMembership
+                               ? 'Processing Payment...'
+                               : '💳 Complete Payment'}
+                           </button>
+                         </>
+                       )}
+                     </div>
+                   )}
+
+                   {/* Successful Payment Details */}
+
+                   {activeMembershipPayment?.status === 'PAID' && (
+                     <div
+                       style={{
+                         padding: '1.25rem',
+                         border: '1px solid var(--border-color)',
+                         borderRadius: 'var(--radius-md)',
+                         background: 'var(--bg-secondary)',
+                       }}
+                     >
+                       <div
+                         style={{
+                           fontSize: '1rem',
+                           fontWeight: 700,
+                           marginBottom: '1rem',
+                         }}
+                       >
+                         ✅ Membership Payment Successful
+                       </div>
+
+                       <div
+                         style={{
+                           display: 'grid',
+                           gridTemplateColumns:
+                             'repeat(auto-fit, minmax(180px, 1fr))',
+                           gap: '1rem',
+                         }}
+                       >
+                         <div>
+                           <span
+                             style={{
+                               display: 'block',
+                               fontSize: '0.75rem',
+                               color: 'var(--text-secondary)',
+                               marginBottom: '0.25rem',
+                             }}
+                           >
+                             Payment Code
+                           </span>
+
+                           <strong>
+                             {activeMembershipPayment.paymentCode ||
+                               '—'}
+                           </strong>
+                         </div>
+
+                         <div>
+                           <span
+                             style={{
+                               display: 'block',
+                               fontSize: '0.75rem',
+                               color: 'var(--text-secondary)',
+                               marginBottom: '0.25rem',
+                             }}
+                           >
+                             Transaction Reference
+                           </span>
+
+                           <strong>
+                             {activeMembershipPayment.transactionReference ||
+                               '—'}
+                           </strong>
+                         </div>
+
+                         <div>
+                           <span
+                             style={{
+                               display: 'block',
+                               fontSize: '0.75rem',
+                               color: 'var(--text-secondary)',
+                               marginBottom: '0.25rem',
+                             }}
+                           >
+                             Receipt Number
+                           </span>
+
+                           <strong>
+                             {activeMembershipPayment.receiptNumber ||
+                               '—'}
+                           </strong>
+                         </div>
+
+                         <div>
+                           <span
+                             style={{
+                               display: 'block',
+                               fontSize: '0.75rem',
+                               color: 'var(--text-secondary)',
+                               marginBottom: '0.25rem',
+                             }}
+                           >
+                             Payment Method
+                           </span>
+
+                           <strong>
+                             {activeMembershipPayment.paymentMethod ||
+                               '—'}
+                           </strong>
+                         </div>
+
+                         <div>
+                           <span
+                             style={{
+                               display: 'block',
+                               fontSize: '0.75rem',
+                               color: 'var(--text-secondary)',
+                               marginBottom: '0.25rem',
+                             }}
+                           >
+                             Paid At
+                           </span>
+
+                           <strong>
+                             {activeMembershipPayment.paidAt
+                               ? new Date(
+                                   activeMembershipPayment.paidAt
+                                 ).toLocaleString()
+                               : '—'}
+                           </strong>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+
+                   {/* Payment History */}
+
+                   {membershipPayments.length > 0 && (
+                     <div
+                       style={{
+                         marginTop: '1.5rem',
+                       }}
+                     >
+                       <h5
+                         style={{
+                           margin: '0 0 0.75rem',
+                         }}
+                       >
+                         Payment History
+                       </h5>
+
+                       <div
+                         style={{
+                           display: 'flex',
+                           flexDirection: 'column',
+                           gap: '0.75rem',
+                         }}
+                       >
+                         {membershipPayments.map((payment) => (
+                           <div
+                             key={payment.id}
+                             style={{
+                               padding: '1rem',
+                               border:
+                                 '1px solid var(--border-color)',
+                               borderRadius:
+                                 'var(--radius-md)',
+                               background:
+                                 'var(--bg-primary)',
+                             }}
+                           >
+                             <div
+                               style={{
+                                 display: 'flex',
+                                 justifyContent:
+                                   'space-between',
+                                 gap: '1rem',
+                                 flexWrap: 'wrap',
+                               }}
+                             >
+                               <strong>
+                                 {payment.paymentCode}
+                               </strong>
+
+                               <span
+                                 className={`badge ${
+                                   payment.status === 'PAID'
+                                     ? 'badge-success'
+                                     : payment.status === 'FAILED'
+                                       ? 'badge-danger'
+                                       : 'badge-warning'
+                                 }`}
+                               >
+                                 {payment.status}
+                               </span>
+                             </div>
+
+                             <div
+                               style={{
+                                 marginTop: '0.5rem',
+                                 fontSize: '0.85rem',
+                                 color:
+                                   'var(--text-secondary)',
+                               }}
+                             >
+                               LKR{' '}
+                               {Number(
+                                 payment.amount || 0
+                               ).toFixed(2)}{' '}
+                               • {payment.paymentType}
+                             </div>
+
+                             {payment.receiptNumber && (
+                               <div
+                                 style={{
+                                   marginTop: '0.35rem',
+                                   fontSize: '0.8rem',
+                                   color:
+                                     'var(--text-secondary)',
+                                 }}
+                               >
+                                 Receipt:{' '}
+                                 {payment.receiptNumber}
+                               </div>
+                             )}
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </div>
+
 
                  {/* MEMBERSHIP TYPE CHANGE REQUEST */}
 

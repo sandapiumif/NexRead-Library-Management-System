@@ -282,6 +282,40 @@ export default function SubmitRequestView({
                       Librarian: "{req.adminNotes}"
                     </div>
                   )}
+
+              {req.purchaseRecommendation && (
+                <div
+                  style={{
+                    marginTop: '10px',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                    border: '1px solid rgba(99, 102, 241, 0.18)',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      color: 'var(--primary)',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    📚 Purchase Recommendation
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-body)',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {req.purchaseRecommendation}
+                  </div>
+                </div>
+              )}
+
                 </div>
               ))}
             </div>

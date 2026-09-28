@@ -131,6 +131,68 @@ public class BookRequestController {
         }
     }
 
+    // ==============================
+    // UPDATE - Update request priority
+    // ==============================
+    @PutMapping("/{id}/priority")
+    public ResponseEntity<?> updateRequestPriority(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
+
+        try {
+
+            String priority = payload.get("priority");
+
+            BookRequest updated =
+                    bookRequestService.updateRequestPriority(
+                            id,
+                            priority
+                    );
+
+            return ResponseEntity.ok(updated);
+
+        } catch (IllegalArgumentException ex) {
+
+            return ResponseEntity.badRequest()
+                    .body(Collections.singletonMap(
+                            "error",
+                            ex.getMessage()
+                    ));
+        }
+    }
+
+
+    // ==============================
+    // UPDATE - Purchase Recommendation
+    // ==============================
+    @PutMapping("/{id}/purchase-recommendation")
+    public ResponseEntity<?> updatePurchaseRecommendation(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
+
+        try {
+
+            String recommendation =
+                    payload.get("recommendation");
+
+            BookRequest updated =
+                    bookRequestService.updatePurchaseRecommendation(
+                            id,
+                            recommendation
+                    );
+
+            return ResponseEntity.ok(updated);
+
+        } catch (IllegalArgumentException |
+                 IllegalStateException ex) {
+
+            return ResponseEntity.badRequest()
+                    .body(Collections.singletonMap(
+                            "error",
+                            ex.getMessage()
+                    ));
+        }
+    }
 
     // ==============================
     // DELETE - Cancel book request

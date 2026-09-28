@@ -34,6 +34,12 @@ public class BookRequest {
     @Column(nullable = false)
     private String status; // PENDING, APPROVED, REJECTED, ACQUIRED
 
+    @Column(nullable = false)
+    private String priority; // LOW, MEDIUM, HIGH
+
+    @Column(name = "purchase_recommendation", length = 1000)
+    private String purchaseRecommendation;
+
     @Column(name = "admin_notes")
     private String adminNotes;
 
@@ -68,6 +74,12 @@ public class BookRequest {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getPriority() { return priority;}
+    public void setPriority(String priority) { this.priority = priority;}
+
+    public String getPurchaseRecommendation() { return purchaseRecommendation;}
+    public void setPurchaseRecommendation(String purchaseRecommendation) { this.purchaseRecommendation = purchaseRecommendation;}
 
     public String getAdminNotes() { return adminNotes; }
     public void setAdminNotes(String adminNotes) { this.adminNotes = adminNotes; }

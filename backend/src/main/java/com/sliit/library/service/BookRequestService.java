@@ -101,6 +101,7 @@ public class BookRequestService {
 
         request.setMember(member);
         request.setStatus("PENDING");
+        request.setPriority("MEDIUM");
         request.setAdminNotes(
                 "Awaiting librarian review"
         );
@@ -219,4 +220,86 @@ public class BookRequestService {
                 request.getId()
         );
     }
+
+    // =========================
+    // UPDATE - Update request priority
+    // =========================
+    public BookRequest updateRequestPriority(
+            Long requestId,
+            String priority) {
+
+        BookRequest request =
+                bookRequestRepo.findById(requestId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Book request not found"
+                                )
+                        );
+
+        if (priority == null ||
+                priority.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Request priority is required"
+            );
+        }
+
+        String normalizedPriority =
+                priority.trim().toUpperCase();
+
+        if (!normalizedPriority.equals("LOW") &&
+                !normalizedPriority.equals("MEDIUM") &&
+                !normalizedPriority.equals("HIGH")) {
+
+            throw new IllegalArgumentException(
+                    "Priority must be LOW, MEDIUM, or HIGH"
+            );
+        }
+
+        request.setPriority(normalizedPriority);
+
+        return bookRequestRepo.save(request);
+    }
+
+    // =========================
+    // UPDATE - Purchase Recommendation
+    // =========================
+    public BookRequest updatePurchaseRecommendation(
+            Long requestId,
+            String recommendation) {
+
+        BookRequest request =
+                bookRequestRepo.findById(requestId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Book request not found"
+                                )
+                        );
+
+        if (recommendation == null ||
+                recommendation.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Purchase recommendation is required"
+            );
+        }
+
+        if (!"APPROVED".equalsIgnoreCase(
+                request.getStatus())) {
+
+            throw new IllegalStateException(
+                    "Purchase recommendation can only be added to an approved request"
+            );
+        }
+
+        request.setPurchaseRecommendation(
+                recommendation.trim()
+        );
+
+        BookRequest savedRequest =
+                bookRequestRepo.save(request);
+
+        return savedRequest;
+    }
+
 }

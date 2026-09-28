@@ -7,6 +7,8 @@ export default function BookRequestsView({
   onSubmitRequest,
   onUpdateRequestStatus,
   onDeleteBookRequest,
+  onUpdateRequestPriority,
+  onUpdatePurchaseRecommendation,
   userRole,
 }) {
   const [selectedMemberId, setSelectedMemberId] = useState('');
@@ -97,6 +99,35 @@ export default function BookRequestsView({
       'Approved for acquisition'
     );
   };
+
+   // ==============================
+   // Add Purchase Recommendation
+   // ==============================
+   const handlePurchaseRecommendation = (request) => {
+     const recommendation = window.prompt(
+       `Enter purchase recommendation for "${request.title}":`
+     );
+
+     // User clicked Cancel
+     if (recommendation === null) {
+       return;
+     }
+
+     const trimmedRecommendation = recommendation.trim();
+
+     // Empty recommendation is not allowed
+     if (!trimmedRecommendation) {
+       window.alert(
+         'A purchase recommendation is required.'
+       );
+       return;
+     }
+
+     onUpdatePurchaseRecommendation(
+       request.id,
+       trimmedRecommendation
+     );
+   };
 
   // ==============================
   // Reject request with reason
@@ -345,10 +376,12 @@ export default function BookRequestsView({
                 <th>Author</th>
                 <th>Reason</th>
                 <th>Status</th>
+                <th>Priority</th>
+                <th>Purchase Recommendation</th>
 
-                {userRole === 'LIBRARIAN' && (
-                  <th>Librarian Actions</th>
-                )}
+               {(userRole === 'LIBRARIAN' || userRole === 'ADMIN') && (
+                 <th>Librarian Actions</th>
+               )}
               </tr>
             </thead>
 
@@ -412,7 +445,32 @@ export default function BookRequestsView({
                     </span>
                   </td>
 
-                  {userRole === 'LIBRARIAN' && (
+                  <td
+                    style={{
+                      width: '130px',
+                      minWidth: '130px',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                    }}
+                  >
+                    <select
+                      className="form-select"
+                      value={r.priority || 'MEDIUM'}
+                      onChange={(e) =>
+                        onUpdateRequestPriority(r.id, e.target.value)
+                      }
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '0.35rem',
+                      }}
+                    >
+                      <option value="LOW">LOW</option>
+                      <option value="MEDIUM">MEDIUM</option>
+                      <option value="HIGH">HIGH</option>
+                    </select>
+                  </td>
+
+                 {(userRole === 'LIBRARIAN' || userRole === 'ADMIN') && (
                     <td>
                       {r.status === 'PENDING' ? (
                         <div
@@ -462,14 +520,35 @@ export default function BookRequestsView({
                           </button>
                         </div>
                       ) : (
-                        <span
+                        <div
                           style={{
-                            fontSize: '0.75rem',
-                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.4rem',
                           }}
                         >
-                          {r.adminNotes || 'Processed'}
-                        </span>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            {r.adminNotes || 'Processed'}
+                          </span>
+
+                          {r.status === 'APPROVED' && (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() =>
+                                handlePurchaseRecommendation(r)
+                              }
+                            >
+                              {r.purchaseRecommendation
+                                ? 'Update Recommendation'
+                                : 'Add Recommendation'}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   )}

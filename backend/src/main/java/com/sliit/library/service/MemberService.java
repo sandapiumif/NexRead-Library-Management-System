@@ -1,6 +1,8 @@
 package com.sliit.library.service;
 
 import com.sliit.library.model.Member;
+import com.sliit.library.model.MembershipPayment;
+import com.sliit.library.repository.MembershipPaymentRepository;
 import com.sliit.library.repository.MemberRepository;
 import com.sliit.library.repository.RenewalHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,9 @@ public class MemberService {
 
     @Autowired
     private MemberRepository memberRepo;
+
+    @Autowired
+    private MembershipPaymentRepository membershipPaymentRepo;
 
     @Autowired
     private RenewalHistoryRepository renewalHistoryRepo;
@@ -391,14 +396,22 @@ public class MemberService {
 
 
     // =========================================================
-    // MEMBERSHIP RENEWAL
-    // =========================================================
+// MEMBERSHIP RENEWAL
+// =========================================================
 
     public Member renewMembership(Long id) {
 
         Member member = memberRepo.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Member not found"));
+                        new IllegalArgumentException(
+                                "Member not found"
+                        )
+                );
+
+
+        // =====================================================
+        // CHECK EXPIRY DATE
+        // =====================================================
 
         if (member.getExpiryDate() == null) {
 
@@ -407,7 +420,9 @@ public class MemberService {
             );
         }
 
+
         LocalDate today = LocalDate.now();
+
 
         // Membership must be expired before renewal
         if (!member.getExpiryDate().isBefore(today)) {
@@ -417,11 +432,57 @@ public class MemberService {
             );
         }
 
-        // Store previous expiry date before updating
+
+        // Store previous expiry date
         LocalDate previousExpiryDate =
                 member.getExpiryDate();
 
-        // Renew for 12 months
+
+        // =====================================================
+        // CHECK PAID RENEWAL PAYMENT
+        // =====================================================
+
+        Optional<MembershipPayment> renewalPayment =
+                membershipPaymentRepo
+                        .findTopByMemberIdAndPaymentTypeAndStatusOrderByPaidAtDesc(
+                                member.getId(),
+                                "RENEWAL",
+                                "PAID"
+                        );
+
+
+        if (renewalPayment.isEmpty()) {
+
+            throw new IllegalStateException(
+                    "Membership renewal payment is required before renewal"
+            );
+        }
+
+
+        MembershipPayment payment =
+                renewalPayment.get();
+
+
+        // =====================================================
+        // MAKE SURE PAYMENT WAS MADE FOR THIS
+        // EXPIRED MEMBERSHIP PERIOD
+        // =====================================================
+
+        if (payment.getPaidAt() == null ||
+                !payment.getPaidAt()
+                        .toLocalDate()
+                        .isAfter(previousExpiryDate)) {
+
+            throw new IllegalStateException(
+                    "A valid paid renewal payment for the expired membership is required"
+            );
+        }
+
+
+        // =====================================================
+        // RENEW MEMBERSHIP
+        // =====================================================
+
         LocalDate newExpiryDate =
                 today.plusMonths(12);
 
@@ -430,18 +491,38 @@ public class MemberService {
         // Renewed member becomes active again
         member.setStatus("ACTIVE");
 
-        // Save renewal history
-        RenewalHistory history = new RenewalHistory();
+
+        // =====================================================
+        // SAVE RENEWAL HISTORY
+        // =====================================================
+
+        RenewalHistory history =
+                new RenewalHistory();
 
         history.setMemberId(member.getId());
-        history.setPreviousExpiryDate(previousExpiryDate);
-        history.setNewExpiryDate(newExpiryDate);
-        history.setRenewalDate(today);
+
+        history.setPreviousExpiryDate(
+                previousExpiryDate
+        );
+
+        history.setNewExpiryDate(
+                newExpiryDate
+        );
+
+        history.setRenewalDate(
+                today
+        );
 
         renewalHistoryRepo.save(history);
 
+
+        // =====================================================
+        // SAVE MEMBER
+        // =====================================================
+
         Member savedMember =
                 memberRepo.save(member);
+
 
         // =====================================================
         // MEMBER NOTIFICATION
@@ -459,6 +540,7 @@ public class MemberService {
                 savedMember.getId()
         );
 
+
         // =====================================================
         // ADMIN NOTIFICATION
         // =====================================================
@@ -472,6 +554,7 @@ public class MemberService {
                 "MEMBERSHIP",
                 savedMember.getId()
         );
+
 
         return savedMember;
     }

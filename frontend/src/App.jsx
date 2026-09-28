@@ -111,6 +111,7 @@ export default function App() {
   const [fines, setFines] = useState([]);
   const [requests, setRequests] = useState([]);
   const [refunds, setRefunds] = useState([]);
+  const [membershipPayments, setMembershipPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -193,6 +194,7 @@ export default function App() {
          requestsRes,
          borrowingRequestsRes,
          refundsRes,
+         membershipPaymentsRes,
        ] = await Promise.all([
 
          fetchJson(
@@ -237,6 +239,11 @@ export default function App() {
 
          fetchJson(
            `${API_BASE}/refunds`,
+           []
+         ),
+
+         fetchJson(
+           `${API_BASE}/membership-payments`,
            []
          ),
 
@@ -290,6 +297,12 @@ export default function App() {
        setRefunds(
          Array.isArray(refundsRes)
            ? refundsRes
+           : []
+       );
+
+       setMembershipPayments(
+         Array.isArray(membershipPaymentsRes)
+           ? membershipPaymentsRes
            : []
        );
 
@@ -1688,6 +1701,82 @@ const handleProcessRefund = async (fine) => {
       return data;
     };
 
+    // ─────────────────────────────────────────────────────────────────────
+    // UPDATE BOOK REQUEST PRIORITY
+    // ─────────────────────────────────────────────────────────────────────
+
+    const handleUpdateRequestPriority = async (requestId, priority) => {
+      const res = await fetch(
+        `${API_BASE}/requests/${requestId}/priority`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ priority }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || 'Failed to update request priority'
+        );
+      }
+
+      await fetchData();
+
+      return data;
+    };
+
+   // UPDATE BOOK REQUEST PURCHASE RECOMMENDATION
+   const handleUpdatePurchaseRecommendation = async (
+     requestId,
+     recommendation
+   ) => {
+     try {
+       const res = await fetch(
+         `${API_BASE}/requests/${requestId}/purchase-recommendation`,
+         {
+           method: 'PUT',
+           headers: {
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify({
+             recommendation,
+           }),
+         }
+       );
+
+       const data = await res.json();
+
+       if (!res.ok) {
+         throw new Error(
+           data.error ||
+             'Failed to update purchase recommendation'
+         );
+       }
+
+       // Refresh requests so the new recommendation appears immediately
+       await fetchData();
+
+       return data;
+     } catch (err) {
+       console.error(
+         'Purchase recommendation error:',
+         err
+       );
+
+       alert(
+         err.message ||
+           'Failed to update purchase recommendation'
+       );
+
+       throw err;
+     }
+   };
+
   // ═════════════════════════════════════════════════════════════════════
   // LANDING PAGE
   // ═════════════════════════════════════════════════════════════════════
@@ -2102,37 +2191,346 @@ const handleProcessRefund = async (fine) => {
 
               )}
 
+
+
+              {/* Membership Payment Records */}
+
+              <section
+                style={{
+                  marginTop: '24px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '18px',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div>
+                    <h2 style={{ margin: 0 }}>
+                      Membership Payment Records
+                    </h2>
+
+                    <div
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.85rem',
+                        marginTop: '5px',
+                      }}
+                    >
+                      Membership registration and renewal payment history
+                    </div>
+                  </div>
+
+                  <span className="status-pill">
+                    {membershipPayments.length} Records
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    overflowX: 'auto',
+                    width: '100%',
+                  }}
+                >
+                  <table
+                    className="data-table"
+                    style={{
+                      width: '100%',
+                      minWidth: '1250px',
+                      borderCollapse: 'separate',
+                      borderSpacing: '0',
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            minWidth: '150px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Payment Code
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '200px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Member
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '150px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Membership Type
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '130px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Payment Type
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '130px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Amount
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '150px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Method
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '100px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Status
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '200px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Receipt
+                        </th>
+
+                        <th
+                          style={{
+                            minWidth: '130px',
+                            padding: '14px 16px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Payment Date
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {membershipPayments.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan="9"
+                            style={{
+                              textAlign: 'center',
+                              padding: '28px',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            No membership payment records found.
+                          </td>
+                        </tr>
+                      ) : (
+                        [...membershipPayments]
+                          .sort(
+                            (a, b) =>
+                              new Date(b.paidAt || b.createdAt || 0) -
+                              new Date(a.paidAt || a.createdAt || 0)
+                          )
+                          .map((payment) => (
+                            <tr key={payment.id}>
+
+                              {/* Payment Code */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                <strong>
+                                  {payment.paymentCode || '—'}
+                                </strong>
+                              </td>
+
+                              {/* Member */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  minWidth: '200px',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontWeight: 600,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {payment.member?.fullName || '—'}
+                                </div>
+
+                                <div
+                                  style={{
+                                    color: 'var(--text-muted)',
+                                    fontSize: '0.78rem',
+                                    marginTop: '4px',
+                                  }}
+                                >
+                                  {payment.member?.memberCode || '—'}
+                                </div>
+                              </td>
+
+                              {/* Membership Type */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {payment.membershipType || '—'}
+                              </td>
+
+                              {/* Payment Type */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {payment.paymentType || '—'}
+                              </td>
+
+                              {/* Amount */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                <strong>
+                                  LKR{' '}
+                                  {Number(payment.amount || 0).toFixed(2)}
+                                </strong>
+                              </td>
+
+                              {/* Method */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {payment.paymentMethod
+                                  ? payment.paymentMethod.replaceAll(
+                                      '_',
+                                      ' '
+                                    )
+                                  : '—'}
+                              </td>
+
+                              {/* Status */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                <span
+                                  className={
+                                    String(payment.status).toUpperCase() ===
+                                    'PAID'
+                                      ? 'status-pill status-paid'
+                                      : 'status-pill'
+                                  }
+                                >
+                                  {payment.status || '—'}
+                                </span>
+                              </td>
+
+                              {/* Receipt */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                  fontSize: '0.88rem',
+                                }}
+                              >
+                                {payment.receiptNumber || '—'}
+                              </td>
+
+                              {/* Payment Date */}
+                              <td
+                                style={{
+                                  padding: '16px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {payment.paidAt
+                                  ? new Date(
+                                      payment.paidAt
+                                    ).toLocaleDateString()
+                                  : payment.createdAt
+                                    ? new Date(
+                                        payment.createdAt
+                                      ).toLocaleDateString()
+                                    : '—'}
+                              </td>
+
+                            </tr>
+                          ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+
+
               {/* Book Requests */}
 
               {activeView === 'requests' && (
 
                 <BookRequestsView
-                  members={
-                    members
-                  }
-
-                  books={
-                    books
-                  }
-
-                  requests={
-                    requests
-                  }
-
-                  onSubmitRequest={
-                    handleSubmitBookRequest
-                  }
-
-                  onUpdateRequestStatus={
-                    handleUpdateRequestStatus
-                  }
-
-                  onDeleteBookRequest={
-                    handleDeleteBookRequest
-                  }
+                  members={members}
+                  books={books}
+                  requests={requests}
+                  userRole={userRole}
+                  onSubmitRequest={handleSubmitBookRequest}
+                  onUpdateRequestStatus={handleUpdateRequestStatus}
+                  onDeleteBookRequest={handleDeleteBookRequest}
+                  onUpdateRequestPriority={handleUpdateRequestPriority}
+                  onUpdatePurchaseRecommendation={handleUpdatePurchaseRecommendation}
                 />
 
               )}
+
 
               {/* Members */}
 

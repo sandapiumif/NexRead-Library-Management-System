@@ -4,11 +4,14 @@ const API_BASE = 'http://localhost:8080/api';
 
 export default function MembershipTypeManagement() {
   const [types, setTypes] = useState([]);
+
   const [form, setForm] = useState({
     typeName: '',
     borrowLimit: '',
     membershipDurationMonths: '',
+    feeAmount: '',
   });
+
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -16,8 +19,17 @@ export default function MembershipTypeManagement() {
 
   const fetchTypes = async () => {
     try {
-      const res = await fetch(`${API_BASE}/membership-types`);
-      if (!res.ok) throw new Error('Failed to load membership types');
+      setError('');
+
+      const res = await fetch(
+        `${API_BASE}/membership-types`
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          'Failed to load membership types'
+        );
+      }
 
       const data = await res.json();
       setTypes(data);
@@ -35,7 +47,9 @@ export default function MembershipTypeManagement() {
       ...form,
       [e.target.name]: e.target.value,
     });
+
     setError('');
+    setSuccess('');
   };
 
   const resetForm = () => {
@@ -43,7 +57,9 @@ export default function MembershipTypeManagement() {
       typeName: '',
       borrowLimit: '',
       membershipDurationMonths: '',
+      feeAmount: '',
     });
+
     setEditingId(null);
   };
 
@@ -61,6 +77,7 @@ export default function MembershipTypeManagement() {
         membershipDurationMonths: Number(
           form.membershipDurationMonths
         ),
+        feeAmount: Number(form.feeAmount),
       };
 
       const url = editingId
@@ -79,7 +96,8 @@ export default function MembershipTypeManagement() {
 
       if (!res.ok) {
         throw new Error(
-          data.error || 'Failed to save membership type'
+          data.error ||
+            'Failed to save membership type'
         );
       }
 
@@ -90,6 +108,7 @@ export default function MembershipTypeManagement() {
       );
 
       resetForm();
+
       await fetchTypes();
     } catch (err) {
       setError(err.message);
@@ -106,6 +125,7 @@ export default function MembershipTypeManagement() {
       borrowLimit: type.borrowLimit,
       membershipDurationMonths:
         type.membershipDurationMonths,
+      feeAmount: type.feeAmount ?? '',
     });
 
     setError('');
@@ -113,7 +133,11 @@ export default function MembershipTypeManagement() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this membership type?')) {
+    if (
+      !window.confirm(
+        'Delete this membership type?'
+      )
+    ) {
       return;
     }
 
@@ -132,11 +156,15 @@ export default function MembershipTypeManagement() {
 
       if (!res.ok) {
         throw new Error(
-          data.error || 'Failed to delete membership type'
+          data.error ||
+            'Failed to delete membership type'
         );
       }
 
-      setSuccess('Membership type deleted successfully.');
+      setSuccess(
+        'Membership type deleted successfully.'
+      );
+
       await fetchTypes();
     } catch (err) {
       setError(err.message);
@@ -146,8 +174,13 @@ export default function MembershipTypeManagement() {
   return (
     <div className="animate-fade-in">
 
+      {/* =========================
+          SECTION HEADER
+      ========================== */}
+
       <div className="section-header">
         <div>
+
           <h2 className="section-title">
             Membership Type Management
           </h2>
@@ -158,11 +191,17 @@ export default function MembershipTypeManagement() {
               fontSize: '0.88rem',
             }}
           >
-            Manage membership categories, borrowing limits
-            and membership validity periods.
+            Manage membership categories, borrowing
+            limits, membership validity periods and
+            membership fees.
           </p>
+
         </div>
       </div>
+
+      {/* =========================
+          ALERTS
+      ========================== */}
 
       {error && (
         <div className="alert alert-danger">
@@ -176,8 +215,16 @@ export default function MembershipTypeManagement() {
         </div>
       )}
 
-      {/* Add / Edit Form */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
+      {/* =========================
+          ADD / EDIT FORM
+      ========================== */}
+
+      <div
+        className="card"
+        style={{
+          marginBottom: '2rem',
+        }}
+      >
 
         <h3
           style={{
@@ -195,7 +242,10 @@ export default function MembershipTypeManagement() {
 
           <div className="form-row">
 
+            {/* Membership Type */}
+
             <div className="form-group">
+
               <label className="form-label">
                 Membership Type *
               </label>
@@ -209,9 +259,13 @@ export default function MembershipTypeManagement() {
                 onChange={handleChange}
                 required
               />
+
             </div>
 
+            {/* Borrow Limit */}
+
             <div className="form-group">
+
               <label className="form-label">
                 Borrow Limit *
               </label>
@@ -226,9 +280,13 @@ export default function MembershipTypeManagement() {
                 onChange={handleChange}
                 required
               />
+
             </div>
 
+            {/* Duration */}
+
             <div className="form-group">
+
               <label className="form-label">
                 Duration (Months) *
               </label>
@@ -239,13 +297,40 @@ export default function MembershipTypeManagement() {
                 className="form-input"
                 min="1"
                 placeholder="e.g. 12"
-                value={form.membershipDurationMonths}
+                value={
+                  form.membershipDurationMonths
+                }
                 onChange={handleChange}
                 required
               />
+
+            </div>
+
+            {/* Membership Fee */}
+
+            <div className="form-group">
+
+              <label className="form-label">
+                Membership Fee (LKR) *
+              </label>
+
+              <input
+                type="number"
+                name="feeAmount"
+                className="form-input"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 500"
+                value={form.feeAmount}
+                onChange={handleChange}
+                required
+              />
+
             </div>
 
           </div>
+
+          {/* Buttons */}
 
           <div
             style={{
@@ -253,6 +338,7 @@ export default function MembershipTypeManagement() {
               gap: '0.75rem',
             }}
           >
+
             <button
               type="submit"
               className="btn btn-primary"
@@ -274,82 +360,150 @@ export default function MembershipTypeManagement() {
                 Cancel
               </button>
             )}
+
           </div>
 
         </form>
+
       </div>
 
-      {/* Membership Types Table */}
+      {/* =========================
+          MEMBERSHIP TYPES TABLE
+      ========================== */}
+
       <div className="card">
 
         <div className="section-header">
+
           <h3 className="section-title">
             Membership Types ({types.length})
           </h3>
+
         </div>
 
         <div className="table-responsive">
+
           <table className="custom-table">
 
             <thead>
+
               <tr>
                 <th>Type</th>
                 <th>Borrow Limit</th>
                 <th>Duration</th>
+                <th>Fee</th>
                 <th>Actions</th>
               </tr>
+
             </thead>
 
             <tbody>
-              {types.map((type) => (
-                <tr key={type.id}>
 
-                  <td>
-                    <strong>{type.typeName}</strong>
-                  </td>
+              {types.length === 0 ? (
 
-                  <td>
-                    {type.borrowLimit} Books
-                  </td>
+                <tr>
 
-                  <td>
-                    {type.membershipDurationMonths} Months
-                  </td>
-
-                  <td>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '0.5rem',
-                      }}
-                    >
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleEdit(type)}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          color: 'var(--danger)',
-                          borderColor: 'var(--danger)',
-                        }}
-                        onClick={() =>
-                          handleDelete(type.id)
-                        }
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  <td
+                    colSpan="5"
+                    style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      color:
+                        'var(--text-secondary)',
+                    }}
+                  >
+                    No membership types found.
                   </td>
 
                 </tr>
-              ))}
+
+              ) : (
+
+                types.map((type) => (
+
+                  <tr key={type.id}>
+
+                    {/* Type */}
+
+                    <td>
+                      <strong>
+                        {type.typeName}
+                      </strong>
+                    </td>
+
+                    {/* Borrow Limit */}
+
+                    <td>
+                      {type.borrowLimit} Books
+                    </td>
+
+                    {/* Duration */}
+
+                    <td>
+                      {
+                        type.membershipDurationMonths
+                      }{' '}
+                      Months
+                    </td>
+
+                    {/* Fee */}
+
+                    <td>
+                      LKR{' '}
+                      {Number(
+                        type.feeAmount || 0
+                      ).toFixed(2)}
+                    </td>
+
+                    {/* Actions */}
+
+                    <td>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                        }}
+                      >
+
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() =>
+                            handleEdit(type)
+                          }
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            color:
+                              'var(--danger)',
+                            borderColor:
+                              'var(--danger)',
+                          }}
+                          onClick={() =>
+                            handleDelete(type.id)
+                          }
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+
+                ))
+
+              )}
+
             </tbody>
 
           </table>
+
         </div>
 
       </div>
