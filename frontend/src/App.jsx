@@ -604,40 +604,62 @@ const handleRejectMemberDocument =
   // ADD BOOK
   // ─────────────────────────────────────────────────────────────────────
 
-  const handleAddBook =
-    async (bookData) => {
+    const handleAddBook = async (bookData) => {
+        const { coverImageFile, ...bookDetails } = bookData;
 
-      const res =
-        await fetch(
-          `${API_BASE}/books`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-            body: JSON.stringify(
-              bookData
-            ),
-          }
+        // 1. Create the book using the existing API
+        const res = await fetch(
+            `${API_BASE}/books`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookDetails),
+            }
         );
 
-      const data =
-        await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
+        if (!res.ok) {
+            throw new Error(
+                data.error ||
+                'Failed to add book'
+            );
+        }
 
-        throw new Error(
-          data.error ||
-          'Failed to add book'
-        );
-      }
+        // 2. Upload cover image only if one was selected
+        if (coverImageFile) {
+            const formData = new FormData();
 
-      await fetchData();
+            formData.append(
+                'file',
+                coverImageFile
+            );
 
-      return data;
+            const imageRes = await fetch(
+                `${API_BASE}/books/${data.id}/cover-image`,
+                {
+                    method: 'POST',
+                    body: formData,
+                }
+            );
+
+            const imageData = await imageRes.json();
+
+            if (!imageRes.ok) {
+                throw new Error(
+                    imageData.error ||
+                    'Book was added, but cover image upload failed'
+                );
+            }
+        }
+
+        // 3. Refresh the existing book list
+        await fetchData();
+
+        return data;
     };
-
   // ─────────────────────────────────────────────────────────────────────
   // UPDATE BOOK
   // ─────────────────────────────────────────────────────────────────────

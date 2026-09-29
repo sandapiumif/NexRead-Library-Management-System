@@ -59,6 +59,7 @@ export default function AddBookModal({ isOpen, onClose, onAddBook }) {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [coverImageFile, setCoverImageFile] = useState(null);
 
   if (!isOpen) return null;
 
@@ -76,7 +77,10 @@ export default function AddBookModal({ isOpen, onClose, onAddBook }) {
 
     setLoading(true);
     try {
-      await onAddBook(formData);
+      await onAddBook({
+        ...formData,
+        coverImageFile,
+      });
       onClose();
     } catch (err) {
       setErrorMsg(err.message || 'Failed to add book to catalog.');
@@ -207,39 +211,40 @@ export default function AddBookModal({ isOpen, onClose, onAddBook }) {
               </div>
             </div>
 
-            {/* Row 3: Total Copies & Cover Image URL */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
-                  Total Copies Available
+            {/* Row 3: Total Copies & Cover Image */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="new-book-copies"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Total Copies
                 </label>
                 <input
                   id="new-book-copies"
                   type="number"
                   name="totalCopies"
                   min="1"
-                  max="50"
-                  className="form-input"
                   value={formData.totalCopies}
                   onChange={handleChange}
-                  required
-                  style={{ width: '100%', height: '42px' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
-                  Cover Image URL
+              <div>
+                <label
+                  htmlFor="new-book-cover"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Cover Image
                 </label>
+
                 <input
                   id="new-book-cover"
-                  type="url"
-                  name="coverImage"
-                  className="form-input"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.coverImage}
-                  onChange={handleChange}
-                  style={{ width: '100%', height: '42px' }}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCoverImageFile(e.target.files[0] || null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
             </div>

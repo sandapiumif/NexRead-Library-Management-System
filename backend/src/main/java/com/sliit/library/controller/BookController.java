@@ -5,9 +5,14 @@ import com.sliit.library.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/books")
@@ -111,6 +116,56 @@ public class BookController {
                             "error",
                             e.getMessage()
                     ));
+        }
+    }
+
+    @PostMapping(
+            value = "/{id}/cover-image",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<?> uploadCoverImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+            return ResponseEntity.ok(
+                    bookService.uploadCoverImage(id, file)
+            );
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Failed to upload book cover"));
+        }
+    }
+
+    @GetMapping("/{id}/cover-image/{fileName}")
+    public ResponseEntity<?> getCoverImage(
+            @PathVariable Long id,
+            @PathVariable String fileName) {
+
+        try {
+            Path filePath = Paths.get("uploads/book-covers").resolve(fileName);
+
+            if (!Files.exists(filePath)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = Files.probeContentType(filePath);
+
+            if (contentType == null) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(Files.readAllBytes(filePath));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

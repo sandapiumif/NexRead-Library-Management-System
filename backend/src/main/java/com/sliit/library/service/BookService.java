@@ -5,6 +5,12 @@ import com.sliit.library.repository.BookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
@@ -318,6 +324,77 @@ public class BookService {
     }
 
     // =========================================================
+// UPLOAD BOOK COVER IMAGE
+// =========================================================
+
+    public Book uploadCoverImage(Long id, MultipartFile file) {
+
+        Book book = bookRepo.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Book not found")
+                );
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Please select a cover image"
+            );
+        }
+
+        String contentType = file.getContentType();
+
+        if (contentType == null ||
+                !contentType.startsWith("image/")) {
+
+            throw new IllegalArgumentException(
+                    "Only image files are allowed"
+            );
+        }
+
+        try {
+
+            Path uploadDir = Paths.get("uploads/book-covers");
+
+            Files.createDirectories(uploadDir);
+
+            String originalName = file.getOriginalFilename();
+
+            String extension = "";
+
+            if (originalName != null &&
+                    originalName.contains(".")) {
+
+                extension = originalName.substring(
+                        originalName.lastIndexOf(".")
+                );
+            }
+
+            String fileName =
+                    UUID.randomUUID() + extension;
+
+            Path filePath =
+                    uploadDir.resolve(fileName);
+
+            Files.write(
+                    filePath,
+                    file.getBytes()
+            );
+
+            String imageUrl =
+                    "/api/books/" + id + "/cover-image/" + fileName;
+
+            book.setCoverImage(imageUrl);
+
+            return bookRepo.save(book);
+
+        } catch (IOException e) {
+
+            throw new IllegalArgumentException(
+                    "Failed to save cover image"
+            );
+        }
+    }
+
+    // =========================================================
     // VALIDATION
     // =========================================================
 
@@ -448,4 +525,6 @@ public class BookService {
                 "ISBN must be a valid ISBN-10 or ISBN-13"
         );
     }
+
+
 }
