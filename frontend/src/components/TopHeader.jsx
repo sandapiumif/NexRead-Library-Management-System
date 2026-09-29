@@ -200,13 +200,33 @@ export default function TopHeader({
             }}
           >
 
-            <div className="user-avatar-initials">
-
-              {userRole === 'ADMIN'
-                ? 'AD'
-                : getInitials(activeMember?.fullName)}
-
-            </div>
+           <div
+             className="user-avatar-initials"
+             style={{
+               overflow: 'hidden',
+               padding: 0,
+             }}
+           >
+             {userRole === 'ADMIN' ? (
+               'AD'
+             ) : activeMember?.id ? (
+               <img
+                 src={`http://localhost:8080/api/member-profile/${activeMember.id}/profile-image`}
+                 alt="Profile"
+                 style={{
+                   width: '100%',
+                   height: '100%',
+                   objectFit: 'cover',
+                   display: 'block',
+                 }}
+                 onError={(e) => {
+                   e.currentTarget.style.display = 'none';
+                 }}
+               />
+             ) : (
+               getInitials(activeMember?.fullName)
+             )}
+           </div>
 
 
             <span
