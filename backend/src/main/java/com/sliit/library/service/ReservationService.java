@@ -647,6 +647,18 @@ public class ReservationService {
                 first.getId()
         );
 
+        notificationService.createAdminNotification(
+                "Reserved Book Available",
+                "The reserved book \""
+                        + book.getTitle()
+                        + "\" is now available for member "
+                        + first.getMember().getFullName()
+                        + ", who is first in the reservation queue.",
+                "RESERVATION_BOOK_AVAILABLE",
+                "RESERVATION",
+                first.getId()
+        );
+
 
         /*
          * Mark the notification as sent AFTER creating it.
